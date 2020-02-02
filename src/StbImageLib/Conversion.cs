@@ -236,17 +236,20 @@ namespace StbImageLib
 			return good;
 		}
 
-		public static byte* stbi__convert_16_to_8(ushort* orig, int w, int h, int channels)
+		public static byte[] stbi__convert_16_to_8(byte[] orig, int w, int h, int channels)
 		{
 			int i = 0;
 			int img_len = (int)(w * h * channels);
-			byte* reduced;
-			reduced = (byte*)(Memory.stbi__malloc((ulong)(img_len)));
-			for (i = (int)(0); (i) < (img_len); ++i)
+			var reduced = new byte[img_len];
+
+			fixed (byte* ptr2 = &orig[0])
 			{
-				reduced[i] = ((byte)((orig[i] >> 8) & 0xFF));
+				ushort* ptr = (ushort*)ptr2;
+				for (i = (int)(0); (i) < (img_len); ++i)
+				{
+					reduced[i] = ((byte)((ptr[i] >> 8) & 0xFF));
+				}
 			}
-			CRuntime.free(orig);
 			return reduced;
 		}
 

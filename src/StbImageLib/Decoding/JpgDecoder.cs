@@ -1223,7 +1223,11 @@ namespace StbImageLib.Decoding
 			marker = (byte)(0xff);
 			m = (int)(stbi__get_marker());
 			if (!((m) == (0xd8)))
+			{
+				if ((scan) == (STBI__SCAN_type))
+					return false;
 				stbi__err("no SOI");
+			}
 			if ((scan) == (STBI__SCAN_type))
 				return true;
 			m = (int)(stbi__get_marker());

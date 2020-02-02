@@ -21,23 +21,45 @@ namespace StbImageLib
 		public int BitsPerChannel { get; set; }
 		public byte[] Data { get; set; }
 
-		public static ImageResult FromStream(Stream stream, ColorComponents? requiredComponents = null)
+		public static ImageResult FromStream(Stream stream, ColorComponents? requiredComponents = null, bool use8BitsPerChannel = true)
 		{
+			ImageResult result = null;
 			if (JpgDecoder.Test(stream))
-				return JpgDecoder.Decode(stream, requiredComponents);
-			if (PngDecoder.Test(stream))
-				return PngDecoder.Decode(stream, requiredComponents);
-			if (BmpDecoder.Test(stream))
-				return BmpDecoder.Decode(stream, requiredComponents);
-			if (GifDecoder.Test(stream))
-				return GifDecoder.Decode(stream, requiredComponents);
-			if (PsdDecoder.Test(stream))
-				return PsdDecoder.Decode(stream, requiredComponents);
-			if (TgaDecoder.Test(stream))
-				return TgaDecoder.Decode(stream, requiredComponents);
+			{
+				result = JpgDecoder.Decode(stream, requiredComponents);
+			}
+			else if (PngDecoder.Test(stream))
+			{
+				result = PngDecoder.Decode(stream, requiredComponents);
+			}
+			else if (BmpDecoder.Test(stream))
+			{
+				result = BmpDecoder.Decode(stream, requiredComponents);
+			}
+			else if (GifDecoder.Test(stream))
+			{
+				result = GifDecoder.Decode(stream, requiredComponents);
+			}
+			else if (PsdDecoder.Test(stream))
+			{
+				result = PsdDecoder.Decode(stream, requiredComponents);
+			}
+			else if (TgaDecoder.Test(stream))
+			{
+				result = TgaDecoder.Decode(stream, requiredComponents);
+			}
 
-			Decoder.stbi__err("unknown image type");
-			return null;
+			if (result == null)
+			{
+				Decoder.stbi__err("unknown image type");
+			}
+
+			if (use8BitsPerChannel && result.BitsPerChannel != 8)
+			{
+				result.Data = Conversion.stbi__convert_16_to_8(result.Data, result.Width, result.Height, (int)result.ColorComponents);
+			}
+
+			return result;
 		}
 	}
 }

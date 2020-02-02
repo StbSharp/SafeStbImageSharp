@@ -107,16 +107,16 @@ namespace StbImageLib.Decoding
 			this.zout = zout;
 			if (z_expandable == 0)
 				Decoder.stbi__err("output buffer limit");
-			cur = ((int)(zout - zout_start));
-			limit = (int)(old_limit = ((int)(zout_end - zout_start)));
+			cur = ((int)(this.zout - this.zout_start));
+			limit = (int)(old_limit = ((int)(this.zout_end - this.zout_start)));
 			while ((cur + n) > (limit))
 			{
 				limit *= (int)(2);
 			}
-			q = (sbyte*)(CRuntime.realloc(zout_start, (ulong)(limit)));
-			zout_start = q;
-			zout = q + cur;
-			zout_end = q + limit;
+			q = (sbyte*)(CRuntime.realloc(this.zout_start, (ulong)(limit)));
+			this.zout_start = q;
+			this.zout = q + cur;
+			this.zout_end = q + limit;
 			return (int)(1);
 		}
 
@@ -126,11 +126,11 @@ namespace StbImageLib.Decoding
 			for (; ; )
 			{
 				int z = (int)(stbi__zhuffman_decode(z_length));
-				if (z < (256))
+				if ((z) < (256))
 				{
-					if (z < (0))
+					if ((z) < (0))
 						Decoder.stbi__err("bad huffman code");
-					if ((zout) >= (zout_end))
+					if ((zout) >= (this.zout_end))
 					{
 						if (stbi__zexpand(zout, (int)(1)) == 0)
 							return (int)(0);
@@ -143,9 +143,9 @@ namespace StbImageLib.Decoding
 					byte* p;
 					int len = 0;
 					int dist = 0;
-					if (z == 256)
+					if ((z) == (256))
 					{
-						zout = this.zout;
+						this.zout = zout;
 						return (int)(1);
 					}
 					z -= (int)(257);
@@ -153,17 +153,18 @@ namespace StbImageLib.Decoding
 					if ((stbi__zlength_extra[z]) != 0)
 						len += (int)(stbi__zreceive((int)(stbi__zlength_extra[z])));
 					z = (int)(stbi__zhuffman_decode(z_distance));
-					if (z < (0))
+					if ((z) < (0))
 						Decoder.stbi__err("bad huffman code");
 					dist = (int)(stbi__zdist_base[z]);
 					if ((stbi__zdist_extra[z]) != 0)
 						dist += (int)(stbi__zreceive((int)(stbi__zdist_extra[z])));
-					if ((zout - zout_start) < (dist))
+					if ((zout - this.zout_start) < (dist))
 						Decoder.stbi__err("bad dist");
-					if ((zout + len) > (zout_end))
+					if ((zout + len) > (this.zout_end))
 					{
 						if (stbi__zexpand(zout, (int)(len)) == 0)
 							return (int)(0);
+						zout = this.zout;
 					}
 					p = (byte*)(zout - dist);
 					if ((dist) == (1))
