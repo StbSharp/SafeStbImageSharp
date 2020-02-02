@@ -13,6 +13,7 @@ namespace StbImageLib
 		public int Width { get; set; }
 		public int Height { get; set; }
 		public ColorComponents ColorComponents { get; set; }
+		public ColorComponents SourceComponents { get; set; }
 
 		/// <summary>
 		/// Either 8 or 16

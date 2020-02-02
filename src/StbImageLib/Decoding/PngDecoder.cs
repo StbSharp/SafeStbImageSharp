@@ -922,6 +922,7 @@ namespace StbImageLib.Decoding
 				{
 					Width = img_x,
 					Height = img_y,
+					SourceComponents = (ColorComponents)img_n,
 					ColorComponents = requiredComponents != null ? requiredComponents.Value : (ColorComponents)img_n,
 					BitsPerChannel = bits_per_channel,
 					Data = result

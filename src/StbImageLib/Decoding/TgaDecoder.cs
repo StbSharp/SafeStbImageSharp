@@ -216,6 +216,7 @@ namespace StbImageLib.Decoding
 			{
 				Width = tga_width,
 				Height = tga_height,
+				SourceComponents = (ColorComponents)tga_comp,
 				ColorComponents = requiredComponents != null ? requiredComponents.Value : (ColorComponents)tga_comp,
 				BitsPerChannel = 8,
 				Data = tga_data

@@ -230,6 +230,7 @@ namespace StbImageLib.Decoding
 			{
 				Width = w,
 				Height = h,
+				SourceComponents = ColorComponents.RedGreenBlueAlpha,
 				ColorComponents = requiredComponents != null ? requiredComponents.Value : ColorComponents.RedGreenBlueAlpha,
 				BitsPerChannel = bits_per_channel,
 				Data = _out_
