@@ -164,7 +164,6 @@ namespace StbImageLib.Decoding
 					{
 						if (stbi__zexpand(zout, (int)(len)) == 0)
 							return (int)(0);
-						zout = zout;
 					}
 					p = (byte*)(zout - dist);
 					if ((dist) == (1))
