@@ -210,9 +210,9 @@ namespace StbImageLib.Decoding
 			return (void*)(1);
 		}
 
-		protected override ImageResult InternalDecode(ColorComponents? requiredComponents)
+		private ImageResult InternalDecode(ColorComponents? requiredComponents)
 		{
-			byte* _out_;
+			byte[] _out_;
 			uint mr = (uint)(0);
 			uint mg = (uint)(0);
 			uint mb = (uint)(0);
@@ -253,15 +253,14 @@ namespace StbImageLib.Decoding
 				target = (int)requiredComponents.Value;
 			else
 				target = (int)(img_n);
-			if (Utility.stbi__mad3sizes_valid((int)(target), (int)(img_x), (int)(img_y), (int)(0)) == 0)
+			if (Memory.stbi__mad3sizes_valid((int)(target), (int)(img_x), (int)(img_y), (int)(0)) == 0)
 				stbi__err("too large");
-			_out_ = (byte*)(Utility.stbi__malloc_mad3((int)(target), (int)(img_x), (int)(img_y), (int)(0)));
+			_out_ = new byte[target * img_x * img_y];
 			if ((info.bpp) < (16))
 			{
 				int z = (int)(0);
 				if (((psize) == (0)) || ((psize) > (256)))
 				{
-					CRuntime.free(_out_);
 					stbi__err("invalid");
 				}
 				for (i = (int)(0); (i) < (psize); ++i)
@@ -282,7 +281,6 @@ namespace StbImageLib.Decoding
 					width = (int)(img_x);
 				else
 				{
-					CRuntime.free(_out_);
 					stbi__err("bad bpp");
 				}
 				pad = (int)((-width) & 3);
@@ -375,7 +373,6 @@ namespace StbImageLib.Decoding
 				{
 					if (((mr == 0) || (mg == 0)) || (mb == 0))
 					{
-						CRuntime.free(_out_);
 						stbi__err("bad masks");
 					}
 					rshift = (int)(stbi__high_bit((uint)(mr)) - 7);
@@ -432,15 +429,18 @@ namespace StbImageLib.Decoding
 			if ((flip_vertically) != 0)
 			{
 				byte t = 0;
-				for (j = (int)(0); (j) < ((int)(img_y) >> 1); ++j)
+				fixed (byte* ptr = &_out_[0])
 				{
-					byte* p1 = _out_ + j * img_x * target;
-					byte* p2 = _out_ + (img_y - 1 - j) * img_x * target;
-					for (i = (int)(0); (i) < ((int)(img_x) * target); ++i)
+					for (j = (int)(0); (j) < ((int)(img_y) >> 1); ++j)
 					{
-						t = (byte)(p1[i]);
-						p1[i] = (byte)(p2[i]);
-						p2[i] = (byte)(t);
+						byte* p1 = ptr + j * img_x * target;
+						byte* p2 = ptr + (img_y - 1 - j) * img_x * target;
+						for (i = (int)(0); (i) < ((int)(img_x) * target); ++i)
+						{
+							t = (byte)(p1[i]);
+							p1[i] = (byte)(p2[i]);
+							p2[i] = (byte)(t);
+						}
 					}
 				}
 			}
@@ -460,7 +460,7 @@ namespace StbImageLib.Decoding
 			};
 		}
 
-		private static bool IsBmpInternal(Stream stream)
+		private static bool TestInternal(Stream stream)
 		{
 			int sz = 0;
 			if (stream.ReadByte() != 'B')
@@ -477,9 +477,9 @@ namespace StbImageLib.Decoding
 			return r;
 		}
 
-		public static bool IsBmp(Stream stream)
+		public static bool Test(Stream stream)
 		{
-			var r = IsBmpInternal(stream);
+			var r = TestInternal(stream);
 			stream.Rewind();
 			return r;
 		}
@@ -502,7 +502,8 @@ namespace StbImageLib.Decoding
 			{
 				Width = (int)decoder.img_x,
 				Height = (int)decoder.img_y,
-				ColorComponents = info.ma != 0 ? ColorComponents.RedGreenBlueAlpha : ColorComponents.RedGreenBlue
+				ColorComponents = info.ma != 0 ? ColorComponents.RedGreenBlueAlpha : ColorComponents.RedGreenBlue,
+				BitsPerChannel = 8
 			};
 		}
 

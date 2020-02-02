@@ -1,4 +1,5 @@
-﻿using System;
+﻿using StbImageLib.Utility;
+using System;
 
 namespace StbImageLib.Decoding
 {
@@ -65,7 +66,7 @@ namespace StbImageLib.Decoding
 			int b = 0;
 			int s = 0;
 			int k = 0;
-			k = (int)(Utility.stbi__bit_reverse((int)(code_buffer), (int)(16)));
+			k = (int)(Memory.stbi__bit_reverse((int)(code_buffer), (int)(16)));
 			for (s = (int)(9 + 1); ; ++s)
 			{
 				if ((k) < (z.maxcode[s]))
@@ -234,7 +235,7 @@ namespace StbImageLib.Decoding
 					z.value[c] = ((ushort)(i));
 					if (s <= 9)
 					{
-						int j = (int)(Utility.stbi__bit_reverse((int)(next_code[s]), (int)(s)));
+						int j = (int)(Memory.stbi__bit_reverse((int)(next_code[s]), (int)(s)));
 						while ((j) < (1 << 9))
 						{
 							z.fast[j] = (ushort)(fastv);
@@ -447,7 +448,7 @@ namespace StbImageLib.Decoding
 		public static sbyte* stbi_zlib_decode_noheader_malloc(sbyte* buffer, int len, int* outlen)
 		{
 			var a = new ZLib();
-			sbyte* p = (sbyte*)(Utility.stbi__malloc((ulong)(16384)));
+			sbyte* p = (sbyte*)(Memory.stbi__malloc((ulong)(16384)));
 			a.zbuffer = (byte*)(buffer);
 			a.zbuffer_end = (byte*)(buffer) + len;
 			if ((a.stbi__do_zlib(p, (int)(16384), (int)(1), (int)(0))) != 0)
@@ -478,7 +479,7 @@ namespace StbImageLib.Decoding
 		public static sbyte* stbi_zlib_decode_malloc_guesssize(sbyte* buffer, int len, int initial_size, int* outlen)
 		{
 			var a = new ZLib();
-			sbyte* p = (sbyte*)(Utility.stbi__malloc((ulong)(initial_size)));
+			sbyte* p = (sbyte*)(Memory.stbi__malloc((ulong)(initial_size)));
 			if ((p) == (null))
 				return (null);
 			a.zbuffer = (byte*)(buffer);
@@ -504,7 +505,7 @@ namespace StbImageLib.Decoding
 		public static sbyte* stbi_zlib_decode_malloc_guesssize_headerflag(sbyte* buffer, int len, int initial_size, int* outlen, int parse_header)
 		{
 			var a = new ZLib();
-			sbyte* p = (sbyte*)(Utility.stbi__malloc((ulong)(initial_size)));
+			sbyte* p = (sbyte*)(Memory.stbi__malloc((ulong)(initial_size)));
 			if ((p) == (null))
 				return (null);
 			a.zbuffer = (byte*)(buffer);

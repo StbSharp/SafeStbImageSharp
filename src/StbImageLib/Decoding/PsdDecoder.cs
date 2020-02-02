@@ -1,18 +1,12 @@
-﻿using System.IO;
+﻿using StbImageLib.Utility;
+using System.IO;
 
 namespace StbImageLib.Decoding
 {
-	public unsafe class PsdDecoder: Decoder
+	public unsafe class PsdDecoder : Decoder
 	{
-		private PsdDecoder(Stream stream): base(stream)
+		private PsdDecoder(Stream stream) : base(stream)
 		{
-		}
-
-		private static int stbi__psd_test(stbi__context s)
-		{
-			int r = (((stbi__get32be()) == (0x38425053))) ? 1 : 0;
-			stbi__rewind(s);
-			return (int)(r);
 		}
 
 		private int stbi__psd_decode_rle(byte* p, int pixelCount)
@@ -59,7 +53,7 @@ namespace StbImageLib.Decoding
 			return (int)(1);
 		}
 
-		private void* stbi__psd_load(int* x, int* y, int* comp, int req_comp, stbi__result_info* ri, int bpc)
+		private ImageResult InternalDecode(ColorComponents? requiredComponents, int bpc)
 		{
 			int pixelCount = 0;
 			int channelCount = 0;
@@ -69,7 +63,7 @@ namespace StbImageLib.Decoding
 			int bitdepth = 0;
 			int w = 0;
 			int h = 0;
-			byte* _out_;
+			byte[] _out_;
 			if (stbi__get32be() != 0x38425053)
 				stbi__err("not PSD");
 			if (stbi__get16be() != 1)
@@ -91,234 +85,217 @@ namespace StbImageLib.Decoding
 			compression = (int)(stbi__get16be());
 			if ((compression) > (1))
 				stbi__err("bad compression");
-			if (Utility.stbi__mad3sizes_valid((int)(4), (int)(w), (int)(h), (int)(0)) == 0)
+			if (Memory.stbi__mad3sizes_valid((int)(4), (int)(w), (int)(h), (int)(0)) == 0)
 				stbi__err("too large");
+
+			var bits_per_channel = 8;
 			if (((compression == 0) && ((bitdepth) == (16))) && ((bpc) == (16)))
 			{
-				_out_ = (byte*)(Utility.stbi__malloc_mad3((int)(8), (int)(w), (int)(h), (int)(0)));
-				ri->bits_per_channel = (int)(16);
+				_out_ = new byte[8 * w * h];
+				bits_per_channel = (int)(16);
 			}
 			else
-				_out_ = (byte*)(Utility.stbi__malloc((ulong)(4 * w * h)));
+				_out_ = new byte[4 * w * h];
 			pixelCount = (int)(w * h);
-			if ((compression) != 0)
+
+			fixed (byte* ptr = _out_)
 			{
-				stbi__skip((int)(h * channelCount * 2));
-				for (channel = (int)(0); (channel) < (4); channel++)
+				if ((compression) != 0)
 				{
-					byte* p;
-					p = _out_ + channel;
-					if ((channel) >= (channelCount))
+					stbi__skip((int)(h * channelCount * 2));
+					for (channel = (int)(0); (channel) < (4); channel++)
 					{
-						for (i = (int)(0); (i) < (pixelCount); i++, p += 4)
+						byte* p;
+						p = ptr + channel;
+						if ((channel) >= (channelCount))
 						{
-							*p = (byte)((channel) == (3) ? 255 : 0);
+							for (i = (int)(0); (i) < (pixelCount); i++, p += 4)
+							{
+								*p = (byte)((channel) == (3) ? 255 : 0);
+							}
 						}
-					}
-					else
-					{
-						if (stbi__psd_decode_rle(p, (int)(pixelCount)) == 0)
+						else
 						{
-							CRuntime.free(_out_);
-							stbi__err("corrupt");
+							if (stbi__psd_decode_rle(p, (int)(pixelCount)) == 0)
+							{
+								stbi__err("corrupt");
+							}
 						}
 					}
 				}
-			}
-			else
-			{
-				for (channel = (int)(0); (channel) < (4); channel++)
+				else
 				{
-					if ((channel) >= (channelCount))
+					for (channel = (int)(0); (channel) < (4); channel++)
 					{
-						if (((bitdepth) == (16)) && ((bpc) == (16)))
+						if ((channel) >= (channelCount))
 						{
-							ushort* q = ((ushort*)(_out_)) + channel;
-							ushort val = (ushort)((channel) == (3) ? 65535 : 0);
-							for (i = (int)(0); (i) < (pixelCount); i++, q += 4)
+							if (((bitdepth) == (16)) && ((bpc) == (16)))
 							{
-								*q = (ushort)(val);
-							}
-						}
-						else
-						{
-							byte* p = _out_ + channel;
-							byte val = (byte)((channel) == (3) ? 255 : 0);
-							for (i = (int)(0); (i) < (pixelCount); i++, p += 4)
-							{
-								*p = (byte)(val);
-							}
-						}
-					}
-					else
-					{
-						if ((ri->bits_per_channel) == (16))
-						{
-							ushort* q = ((ushort*)(_out_)) + channel;
-							for (i = (int)(0); (i) < (pixelCount); i++, q += 4)
-							{
-								*q = ((ushort)(stbi__get16be()));
-							}
-						}
-						else
-						{
-							byte* p = _out_ + channel;
-							if ((bitdepth) == (16))
-							{
-								for (i = (int)(0); (i) < (pixelCount); i++, p += 4)
+								ushort* q = ((ushort*)(ptr)) + channel;
+								ushort val = (ushort)((channel) == (3) ? 65535 : 0);
+								for (i = (int)(0); (i) < (pixelCount); i++, q += 4)
 								{
-									*p = ((byte)(stbi__get16be() >> 8));
+									*q = (ushort)(val);
 								}
 							}
 							else
 							{
+								byte* p = ptr + channel;
+								byte val = (byte)((channel) == (3) ? 255 : 0);
 								for (i = (int)(0); (i) < (pixelCount); i++, p += 4)
 								{
-									*p = (byte)(stbi__get8());
+									*p = (byte)(val);
 								}
+							}
+						}
+						else
+						{
+							if ((bits_per_channel) == (16))
+							{
+								ushort* q = ((ushort*)(ptr)) + channel;
+								for (i = (int)(0); (i) < (pixelCount); i++, q += 4)
+								{
+									*q = ((ushort)(stbi__get16be()));
+								}
+							}
+							else
+							{
+								byte* p = ptr + channel;
+								if ((bitdepth) == (16))
+								{
+									for (i = (int)(0); (i) < (pixelCount); i++, p += 4)
+									{
+										*p = ((byte)(stbi__get16be() >> 8));
+									}
+								}
+								else
+								{
+									for (i = (int)(0); (i) < (pixelCount); i++, p += 4)
+									{
+										*p = (byte)(stbi__get8());
+									}
+								}
+							}
+						}
+					}
+				}
+
+				if ((channelCount) >= (4))
+				{
+					if ((bits_per_channel) == (16))
+					{
+						for (i = (int)(0); (i) < (w * h); ++i)
+						{
+							ushort* pixel = (ushort*)(ptr) + 4 * i;
+							if ((pixel[3] != 0) && (pixel[3] != 65535))
+							{
+								float a = (float)(pixel[3] / 65535.0f);
+								float ra = (float)(1.0f / a);
+								float inv_a = (float)(65535.0f * (1 - ra));
+								pixel[0] = ((ushort)(pixel[0] * ra + inv_a));
+								pixel[1] = ((ushort)(pixel[1] * ra + inv_a));
+								pixel[2] = ((ushort)(pixel[2] * ra + inv_a));
+							}
+						}
+					}
+					else
+					{
+						for (i = (int)(0); (i) < (w * h); ++i)
+						{
+							byte* pixel = ptr + 4 * i;
+							if ((pixel[3] != 0) && (pixel[3] != 255))
+							{
+								float a = (float)(pixel[3] / 255.0f);
+								float ra = (float)(1.0f / a);
+								float inv_a = (float)(255.0f * (1 - ra));
+								pixel[0] = ((byte)(pixel[0] * ra + inv_a));
+								pixel[1] = ((byte)(pixel[1] * ra + inv_a));
+								pixel[2] = ((byte)(pixel[2] * ra + inv_a));
 							}
 						}
 					}
 				}
 			}
 
-			if ((channelCount) >= (4))
-			{
-				if ((ri->bits_per_channel) == (16))
-				{
-					for (i = (int)(0); (i) < (w * h); ++i)
-					{
-						ushort* pixel = (ushort*)(_out_) + 4 * i;
-						if ((pixel[3] != 0) && (pixel[3] != 65535))
-						{
-							float a = (float)(pixel[3] / 65535.0f);
-							float ra = (float)(1.0f / a);
-							float inv_a = (float)(65535.0f * (1 - ra));
-							pixel[0] = ((ushort)(pixel[0] * ra + inv_a));
-							pixel[1] = ((ushort)(pixel[1] * ra + inv_a));
-							pixel[2] = ((ushort)(pixel[2] * ra + inv_a));
-						}
-					}
-				}
-				else
-				{
-					for (i = (int)(0); (i) < (w * h); ++i)
-					{
-						byte* pixel = _out_ + 4 * i;
-						if ((pixel[3] != 0) && (pixel[3] != 255))
-						{
-							float a = (float)(pixel[3] / 255.0f);
-							float ra = (float)(1.0f / a);
-							float inv_a = (float)(255.0f * (1 - ra));
-							pixel[0] = ((byte)(pixel[0] * ra + inv_a));
-							pixel[1] = ((byte)(pixel[1] * ra + inv_a));
-							pixel[2] = ((byte)(pixel[2] * ra + inv_a));
-						}
-					}
-				}
-			}
-
+			var req_comp = requiredComponents.ToReqComp();
 			if (((req_comp) != 0) && (req_comp != 4))
 			{
-				if ((ri->bits_per_channel) == (16))
-					_out_ = (byte*)(stbi__convert_format16((ushort*)(_out_), (int)(4), (int)(req_comp), (uint)(w), (uint)(h)));
+				if ((bits_per_channel) == (16))
+					_out_ = Conversion.stbi__convert_format16(_out_, (int)(4), (int)(req_comp), (uint)(w), (uint)(h));
 				else
-					_out_ = stbi__convert_format(_out_, (int)(4), (int)(req_comp), (uint)(w), (uint)(h));
-				if ((_out_) == (null))
-					return _out_;
+					_out_ = Conversion.stbi__convert_format(_out_, (int)(4), (int)(req_comp), (uint)(w), (uint)(h));
 			}
 
-			if ((comp) != null)
-				*comp = (int)(4);
-			*y = (int)(h);
-			*x = (int)(w);
-			return _out_;
+			return new ImageResult
+			{
+				Width = w,
+				Height = h,
+				ColorComponents = requiredComponents != null ? requiredComponents.Value : ColorComponents.RedGreenBlueAlpha,
+				BitsPerChannel = bits_per_channel,
+				Data = _out_
+			};
 		}
 
-		public static int stbi__psd_info(stbi__context s, int* x, int* y, int* comp)
+		public static bool Test(Stream stream)
 		{
-			int channelCount = 0;
-			int dummy = 0;
-			int depth = 0;
-			if (x == null)
-				x = &dummy;
-			if (y == null)
-				y = &dummy;
-			if (comp == null)
-				comp = &dummy;
-			if (stbi__get32be(s) != 0x38425053)
-			{
-				stbi__rewind(s);
-				return (int)(0);
-			}
+			var r = (((stream.stbi__get32be()) == (0x38425053)));
+			stream.Rewind();
 
-			if (stbi__get16be(s) != 1)
-			{
-				stbi__rewind(s);
-				return (int)(0);
-			}
-
-			stbi__skip(s, (int)(6));
-			channelCount = (int)(stbi__get16be(s));
-			if (((channelCount) < (0)) || ((channelCount) > (16)))
-			{
-				stbi__rewind(s);
-				return (int)(0);
-			}
-
-			*y = (int)(stbi__get32be(s));
-			*x = (int)(stbi__get32be(s));
-			depth = (int)(stbi__get16be(s));
-			if ((depth != 8) && (depth != 16))
-			{
-				stbi__rewind(s);
-				return (int)(0);
-			}
-
-			if (stbi__get16be(s) != 3)
-			{
-				stbi__rewind(s);
-				return (int)(0);
-			}
-
-			*comp = (int)(4);
-			return (int)(1);
+			return r;
 		}
 
-		public static int stbi__psd_is16(stbi__context s)
+		public static ImageInfo? Info(Stream stream)
 		{
-			int channelCount = 0;
-			int depth = 0;
-			if (stbi__get32be(s) != 0x38425053)
+			try
 			{
-				stbi__rewind(s);
-				return (int)(0);
-			}
+				if (stream.stbi__get32be() != 0x38425053)
+				{
+					return null;
+				}
 
-			if (stbi__get16be(s) != 1)
+				if (stream.stbi__get16be() != 1)
+				{
+					return null;
+				}
+
+				stream.stbi__skip(6);
+				var channelCount = stream.stbi__get16be();
+				if (((channelCount) < (0)) || ((channelCount) > (16)))
+				{
+					return null;
+				}
+
+				var height = (int)(stream.stbi__get32be());
+				var width = (int)(stream.stbi__get32be());
+				var depth = (int)(stream.stbi__get16be());
+				if ((depth != 8) && (depth != 16))
+				{
+					return null;
+				}
+
+				if (stream.stbi__get16be() != 3)
+				{
+					return null;
+				}
+
+				return new ImageInfo
+				{
+					Width = width,
+					Height = height,
+					ColorComponents = ColorComponents.RedGreenBlueAlpha,
+					BitsPerChannel = depth
+				};
+			}
+			finally
 			{
-				stbi__rewind(s);
-				return (int)(0);
+				stream.Rewind();
 			}
+		}
 
-			stbi__skip(s, (int)(6));
-			channelCount = (int)(stbi__get16be(s));
-			if (((channelCount) < (0)) || ((channelCount) > (16)))
-			{
-				stbi__rewind(s);
-				return (int)(0);
-			}
-
-			stbi__get32be(s);
-			stbi__get32be(s);
-			depth = (int)(stbi__get16be(s));
-			if (depth != 16)
-			{
-				stbi__rewind(s);
-				return (int)(0);
-			}
-
-			return (int)(1);
+		public static ImageResult Decode(Stream stream, ColorComponents? requiredComponents = null, int bpc = 8)
+		{
+			var decoder = new PsdDecoder(stream);
+			return decoder.InternalDecode(requiredComponents, bpc);
 		}
 	}
 }

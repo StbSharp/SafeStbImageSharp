@@ -15,6 +15,6 @@
 		/// Either 8 or 16
 		/// </summary>
 		public int BitsPerChannel { get; set; }
-		public byte* Data { get; set; }
+		public byte[] Data { get; set; }
 	}
 }

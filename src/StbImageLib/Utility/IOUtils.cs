@@ -44,5 +44,10 @@ namespace StbImageLib.Utility
 			uint z = (uint)(stbi__get16le(s));
 			return (uint)(z + (stbi__get16le(s) << 16));
 		}
+
+		public static void stbi__skip(this Stream s, int skip)
+		{
+			s.Seek(skip, SeekOrigin.Current);
+		}
 	}
 }

@@ -1,6 +1,6 @@
 ﻿using System.Threading;
 
-namespace StbImageLib
+namespace StbImageLib.Utility
 {
 #if !STBSHARP_INTERNAL
 	public

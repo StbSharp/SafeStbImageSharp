@@ -25,14 +25,16 @@ namespace StbImageLib.Decoding
 		private static byte[] first_row_filter = { STBI__F_none, STBI__F_sub, STBI__F_none, STBI__F_avg_first, STBI__F_paeth_first };
 		private static byte[] stbi__depth_scale_table = { 0, 0xff, 0x55, 0, 0x11, 0, 0, 0, 0x01 };
 
-		public int stbi__unpremultiply_on_load = 0;
+		protected int img_out_n = 0;
 
-		public int stbi__de_iphone_flag = 0;
+		private int stbi__unpremultiply_on_load = 0;
 
-		public byte* idata;
-		public byte* expanded;
-		public byte* _out_;
-		public int depth = 0;
+		private int stbi__de_iphone_flag = 0;
+
+		private byte[] idata;
+		private byte* expanded;
+		private byte[] _out_;
+		private int depth = 0;
 
 		private PngDecoder(Stream stream): base(stream)
 		{
@@ -93,299 +95,303 @@ namespace StbImageLib.Decoding
 			int output_bytes = (int)(out_n * bytes);
 			int filter_bytes = (int)(img_n * bytes);
 			int width = (int)(x);
-			_out_ = (byte*)(Utility.stbi__malloc_mad3((int)(x), (int)(y), (int)(output_bytes), (int)(0)));
-			if (Utility.stbi__mad3sizes_valid((int)(img_n), (int)(x), (int)(depth), (int)(7)) == 0)
+			_out_ = new byte[x * y * output_bytes];
+			if (Memory.stbi__mad3sizes_valid((int)(img_n), (int)(x), (int)(depth), (int)(7)) == 0)
 				stbi__err("too large");
 			img_width_bytes = (uint)(((img_n * x * depth) + 7) >> 3);
 			img_len = (uint)((img_width_bytes + 1) * y);
 			if ((raw_len) < (img_len))
 				stbi__err("not enough pixels");
-			for (j = (uint)(0); (j) < (y); ++j)
-			{
-				byte* cur = _out_ + stride * j;
-				byte* prior;
-				int filter = (int)(*raw++);
-				if ((filter) > (4))
-					stbi__err("invalid filter");
-				if ((depth) < (8))
-				{
-					cur += x * out_n - img_width_bytes;
-					filter_bytes = (int)(1);
-					width = (int)(img_width_bytes);
-				}
-				prior = cur - stride;
-				if ((j) == (0))
-					filter = (int)(first_row_filter[filter]);
-				for (k = (int)(0); (k) < (filter_bytes); ++k)
-				{
-					switch (filter)
-					{
-						case STBI__F_none:
-							cur[k] = (byte)(raw[k]);
-							break;
-						case STBI__F_sub:
-							cur[k] = (byte)(raw[k]);
-							break;
-						case STBI__F_up:
-							cur[k] = ((byte)((raw[k] + prior[k]) & 255));
-							break;
-						case STBI__F_avg:
-							cur[k] = ((byte)((raw[k] + (prior[k] >> 1)) & 255));
-							break;
-						case STBI__F_paeth:
-							cur[k] = ((byte)((raw[k] + stbi__paeth((int)(0), (int)(prior[k]), (int)(0))) & 255));
-							break;
-						case STBI__F_avg_first:
-							cur[k] = (byte)(raw[k]);
-							break;
-						case STBI__F_paeth_first:
-							cur[k] = (byte)(raw[k]);
-							break;
-					}
-				}
-				if ((depth) == (8))
-				{
-					if (img_n != out_n)
-						cur[img_n] = (byte)(255);
-					raw += img_n;
-					cur += out_n;
-					prior += out_n;
-				}
-				else if ((depth) == (16))
-				{
-					if (img_n != out_n)
-					{
-						cur[filter_bytes] = (byte)(255);
-						cur[filter_bytes + 1] = (byte)(255);
-					}
-					raw += filter_bytes;
-					cur += output_bytes;
-					prior += output_bytes;
-				}
-				else
-				{
-					raw += 1;
-					cur += 1;
-					prior += 1;
-				}
-				if (((depth) < (8)) || ((img_n) == (out_n)))
-				{
-					int nk = (int)((width - 1) * filter_bytes);
-					switch (filter)
-					{
-						case STBI__F_none:
-							CRuntime.memcpy(cur, raw, (ulong)(nk));
-							break;
-						case STBI__F_sub:
-							for (k = (int)(0); (k) < (nk); ++k)
-							{
-								cur[k] = ((byte)((raw[k] + cur[k - filter_bytes]) & 255));
-							}
-							break;
-						case STBI__F_up:
-							for (k = (int)(0); (k) < (nk); ++k)
-							{
-								cur[k] = ((byte)((raw[k] + prior[k]) & 255));
-							}
-							break;
-						case STBI__F_avg:
-							for (k = (int)(0); (k) < (nk); ++k)
-							{
-								cur[k] = ((byte)((raw[k] + ((prior[k] + cur[k - filter_bytes]) >> 1)) & 255));
-							}
-							break;
-						case STBI__F_paeth:
-							for (k = (int)(0); (k) < (nk); ++k)
-							{
-								cur[k] = ((byte)((raw[k] + stbi__paeth((int)(cur[k - filter_bytes]), (int)(prior[k]), (int)(prior[k - filter_bytes]))) & 255));
-							}
-							break;
-						case STBI__F_avg_first:
-							for (k = (int)(0); (k) < (nk); ++k)
-							{
-								cur[k] = ((byte)((raw[k] + (cur[k - filter_bytes] >> 1)) & 255));
-							}
-							break;
-						case STBI__F_paeth_first:
-							for (k = (int)(0); (k) < (nk); ++k)
-							{
-								cur[k] = ((byte)((raw[k] + stbi__paeth((int)(cur[k - filter_bytes]), (int)(0), (int)(0))) & 255));
-							}
-							break;
-					}
-					raw += nk;
-				}
-				else
-				{
-					switch (filter)
-					{
-						case STBI__F_none:
-							for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
-							{
-								for (k = (int)(0); (k) < (filter_bytes); ++k)
-								{
-									cur[k] = (byte)(raw[k]);
-								}
-							}
-							break;
-						case STBI__F_sub:
-							for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
-							{
-								for (k = (int)(0); (k) < (filter_bytes); ++k)
-								{
-									cur[k] = ((byte)((raw[k] + cur[k - output_bytes]) & 255));
-								}
-							}
-							break;
-						case STBI__F_up:
-							for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
-							{
-								for (k = (int)(0); (k) < (filter_bytes); ++k)
-								{
-									cur[k] = ((byte)((raw[k] + prior[k]) & 255));
-								}
-							}
-							break;
-						case STBI__F_avg:
-							for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
-							{
-								for (k = (int)(0); (k) < (filter_bytes); ++k)
-								{
-									cur[k] = ((byte)((raw[k] + ((prior[k] + cur[k - output_bytes]) >> 1)) & 255));
-								}
-							}
-							break;
-						case STBI__F_paeth:
-							for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
-							{
-								for (k = (int)(0); (k) < (filter_bytes); ++k)
-								{
-									cur[k] = ((byte)((raw[k] + stbi__paeth((int)(cur[k - output_bytes]), (int)(prior[k]), (int)(prior[k - output_bytes]))) & 255));
-								}
-							}
-							break;
-						case STBI__F_avg_first:
-							for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
-							{
-								for (k = (int)(0); (k) < (filter_bytes); ++k)
-								{
-									cur[k] = ((byte)((raw[k] + (cur[k - output_bytes] >> 1)) & 255));
-								}
-							}
-							break;
-						case STBI__F_paeth_first:
-							for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
-							{
-								for (k = (int)(0); (k) < (filter_bytes); ++k)
-								{
-									cur[k] = ((byte)((raw[k] + stbi__paeth((int)(cur[k - output_bytes]), (int)(0), (int)(0))) & 255));
-								}
-							}
-							break;
-					}
-					if ((depth) == (16))
-					{
-						cur = _out_ + stride * j;
-						for (i = (uint)(0); (i) < (x); ++i, cur += output_bytes)
-						{
-							cur[filter_bytes + 1] = (byte)(255);
-						}
-					}
-				}
-			}
-			if ((depth) < (8))
+			fixed (byte* ptr = &_out_[0])
 			{
 				for (j = (uint)(0); (j) < (y); ++j)
 				{
-					byte* cur = _out_ + stride * j;
-					byte* _in_ = _out_ + stride * j + x * out_n - img_width_bytes;
-					byte scale = (byte)(((color) == (0)) ? stbi__depth_scale_table[depth] : 1);
-					if ((depth) == (4))
+					byte* cur = ptr + stride * j;
+					byte* prior;
+					int filter = (int)(*raw++);
+					if ((filter) > (4))
+						stbi__err("invalid filter");
+					if ((depth) < (8))
 					{
-						for (k = (int)(x * img_n); (k) >= (2); k -= (int)(2), ++_in_)
-						{
-							*cur++ = (byte)(scale * (*_in_ >> 4));
-							*cur++ = (byte)(scale * ((*_in_) & 0x0f));
-						}
-						if ((k) > (0))
-							*cur++ = (byte)(scale * (*_in_ >> 4));
+						cur += x * out_n - img_width_bytes;
+						filter_bytes = (int)(1);
+						width = (int)(img_width_bytes);
 					}
-					else if ((depth) == (2))
+					prior = cur - stride;
+					if ((j) == (0))
+						filter = (int)(first_row_filter[filter]);
+					for (k = (int)(0); (k) < (filter_bytes); ++k)
 					{
-						for (k = (int)(x * img_n); (k) >= (4); k -= (int)(4), ++_in_)
+						switch (filter)
 						{
-							*cur++ = (byte)(scale * (*_in_ >> 6));
-							*cur++ = (byte)(scale * ((*_in_ >> 4) & 0x03));
-							*cur++ = (byte)(scale * ((*_in_ >> 2) & 0x03));
-							*cur++ = (byte)(scale * ((*_in_) & 0x03));
+							case STBI__F_none:
+								cur[k] = (byte)(raw[k]);
+								break;
+							case STBI__F_sub:
+								cur[k] = (byte)(raw[k]);
+								break;
+							case STBI__F_up:
+								cur[k] = ((byte)((raw[k] + prior[k]) & 255));
+								break;
+							case STBI__F_avg:
+								cur[k] = ((byte)((raw[k] + (prior[k] >> 1)) & 255));
+								break;
+							case STBI__F_paeth:
+								cur[k] = ((byte)((raw[k] + stbi__paeth((int)(0), (int)(prior[k]), (int)(0))) & 255));
+								break;
+							case STBI__F_avg_first:
+								cur[k] = (byte)(raw[k]);
+								break;
+							case STBI__F_paeth_first:
+								cur[k] = (byte)(raw[k]);
+								break;
 						}
-						if ((k) > (0))
-							*cur++ = (byte)(scale * (*_in_ >> 6));
-						if ((k) > (1))
-							*cur++ = (byte)(scale * ((*_in_ >> 4) & 0x03));
-						if ((k) > (2))
-							*cur++ = (byte)(scale * ((*_in_ >> 2) & 0x03));
 					}
-					else if ((depth) == (1))
+					if ((depth) == (8))
 					{
-						for (k = (int)(x * img_n); (k) >= (8); k -= (int)(8), ++_in_)
+						if (img_n != out_n)
+							cur[img_n] = (byte)(255);
+						raw += img_n;
+						cur += out_n;
+						prior += out_n;
+					}
+					else if ((depth) == (16))
+					{
+						if (img_n != out_n)
 						{
-							*cur++ = (byte)(scale * (*_in_ >> 7));
-							*cur++ = (byte)(scale * ((*_in_ >> 6) & 0x01));
-							*cur++ = (byte)(scale * ((*_in_ >> 5) & 0x01));
-							*cur++ = (byte)(scale * ((*_in_ >> 4) & 0x01));
-							*cur++ = (byte)(scale * ((*_in_ >> 3) & 0x01));
-							*cur++ = (byte)(scale * ((*_in_ >> 2) & 0x01));
-							*cur++ = (byte)(scale * ((*_in_ >> 1) & 0x01));
-							*cur++ = (byte)(scale * ((*_in_) & 0x01));
+							cur[filter_bytes] = (byte)(255);
+							cur[filter_bytes + 1] = (byte)(255);
 						}
-						if ((k) > (0))
-							*cur++ = (byte)(scale * (*_in_ >> 7));
-						if ((k) > (1))
-							*cur++ = (byte)(scale * ((*_in_ >> 6) & 0x01));
-						if ((k) > (2))
-							*cur++ = (byte)(scale * ((*_in_ >> 5) & 0x01));
-						if ((k) > (3))
-							*cur++ = (byte)(scale * ((*_in_ >> 4) & 0x01));
-						if ((k) > (4))
-							*cur++ = (byte)(scale * ((*_in_ >> 3) & 0x01));
-						if ((k) > (5))
-							*cur++ = (byte)(scale * ((*_in_ >> 2) & 0x01));
-						if ((k) > (6))
-							*cur++ = (byte)(scale * ((*_in_ >> 1) & 0x01));
+						raw += filter_bytes;
+						cur += output_bytes;
+						prior += output_bytes;
 					}
-					if (img_n != out_n)
+					else
 					{
-						int q = 0;
-						cur = _out_ + stride * j;
-						if ((img_n) == (1))
+						raw += 1;
+						cur += 1;
+						prior += 1;
+					}
+					if (((depth) < (8)) || ((img_n) == (out_n)))
+					{
+						int nk = (int)((width - 1) * filter_bytes);
+						switch (filter)
 						{
-							for (q = (int)(x - 1); (q) >= (0); --q)
+							case STBI__F_none:
+								CRuntime.memcpy(cur, raw, (ulong)(nk));
+								break;
+							case STBI__F_sub:
+								for (k = (int)(0); (k) < (nk); ++k)
+								{
+									cur[k] = ((byte)((raw[k] + cur[k - filter_bytes]) & 255));
+								}
+								break;
+							case STBI__F_up:
+								for (k = (int)(0); (k) < (nk); ++k)
+								{
+									cur[k] = ((byte)((raw[k] + prior[k]) & 255));
+								}
+								break;
+							case STBI__F_avg:
+								for (k = (int)(0); (k) < (nk); ++k)
+								{
+									cur[k] = ((byte)((raw[k] + ((prior[k] + cur[k - filter_bytes]) >> 1)) & 255));
+								}
+								break;
+							case STBI__F_paeth:
+								for (k = (int)(0); (k) < (nk); ++k)
+								{
+									cur[k] = ((byte)((raw[k] + stbi__paeth((int)(cur[k - filter_bytes]), (int)(prior[k]), (int)(prior[k - filter_bytes]))) & 255));
+								}
+								break;
+							case STBI__F_avg_first:
+								for (k = (int)(0); (k) < (nk); ++k)
+								{
+									cur[k] = ((byte)((raw[k] + (cur[k - filter_bytes] >> 1)) & 255));
+								}
+								break;
+							case STBI__F_paeth_first:
+								for (k = (int)(0); (k) < (nk); ++k)
+								{
+									cur[k] = ((byte)((raw[k] + stbi__paeth((int)(cur[k - filter_bytes]), (int)(0), (int)(0))) & 255));
+								}
+								break;
+						}
+						raw += nk;
+					}
+					else
+					{
+						switch (filter)
+						{
+							case STBI__F_none:
+								for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
+								{
+									for (k = (int)(0); (k) < (filter_bytes); ++k)
+									{
+										cur[k] = (byte)(raw[k]);
+									}
+								}
+								break;
+							case STBI__F_sub:
+								for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
+								{
+									for (k = (int)(0); (k) < (filter_bytes); ++k)
+									{
+										cur[k] = ((byte)((raw[k] + cur[k - output_bytes]) & 255));
+									}
+								}
+								break;
+							case STBI__F_up:
+								for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
+								{
+									for (k = (int)(0); (k) < (filter_bytes); ++k)
+									{
+										cur[k] = ((byte)((raw[k] + prior[k]) & 255));
+									}
+								}
+								break;
+							case STBI__F_avg:
+								for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
+								{
+									for (k = (int)(0); (k) < (filter_bytes); ++k)
+									{
+										cur[k] = ((byte)((raw[k] + ((prior[k] + cur[k - output_bytes]) >> 1)) & 255));
+									}
+								}
+								break;
+							case STBI__F_paeth:
+								for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
+								{
+									for (k = (int)(0); (k) < (filter_bytes); ++k)
+									{
+										cur[k] = ((byte)((raw[k] + stbi__paeth((int)(cur[k - output_bytes]), (int)(prior[k]), (int)(prior[k - output_bytes]))) & 255));
+									}
+								}
+								break;
+							case STBI__F_avg_first:
+								for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
+								{
+									for (k = (int)(0); (k) < (filter_bytes); ++k)
+									{
+										cur[k] = ((byte)((raw[k] + (cur[k - output_bytes] >> 1)) & 255));
+									}
+								}
+								break;
+							case STBI__F_paeth_first:
+								for (i = (uint)(x - 1); (i) >= (1); --i, cur[filter_bytes] = (byte)(255), raw += filter_bytes, cur += output_bytes, prior += output_bytes)
+								{
+									for (k = (int)(0); (k) < (filter_bytes); ++k)
+									{
+										cur[k] = ((byte)((raw[k] + stbi__paeth((int)(cur[k - output_bytes]), (int)(0), (int)(0))) & 255));
+									}
+								}
+								break;
+						}
+						if ((depth) == (16))
+						{
+							cur = ptr + stride * j;
+							for (i = (uint)(0); (i) < (x); ++i, cur += output_bytes)
 							{
-								cur[q * 2 + 1] = (byte)(255);
-								cur[q * 2 + 0] = (byte)(cur[q]);
-							}
-						}
-						else
-						{
-							for (q = (int)(x - 1); (q) >= (0); --q)
-							{
-								cur[q * 4 + 3] = (byte)(255);
-								cur[q * 4 + 2] = (byte)(cur[q * 3 + 2]);
-								cur[q * 4 + 1] = (byte)(cur[q * 3 + 1]);
-								cur[q * 4 + 0] = (byte)(cur[q * 3 + 0]);
+								cur[filter_bytes + 1] = (byte)(255);
 							}
 						}
 					}
 				}
-			}
-			else if ((depth) == (16))
-			{
-				byte* cur = _out_;
-				ushort* cur16 = (ushort*)(cur);
-				for (i = (uint)(0); (i) < (x * y * out_n); ++i, cur16++, cur += 2)
+
+				if ((depth) < (8))
 				{
-					*cur16 = (ushort)((cur[0] << 8) | cur[1]);
+					for (j = (uint)(0); (j) < (y); ++j)
+					{
+						byte* cur = ptr + stride * j;
+						byte* _in_ = ptr + stride * j + x * out_n - img_width_bytes;
+						byte scale = (byte)(((color) == (0)) ? stbi__depth_scale_table[depth] : 1);
+						if ((depth) == (4))
+						{
+							for (k = (int)(x * img_n); (k) >= (2); k -= (int)(2), ++_in_)
+							{
+								*cur++ = (byte)(scale * (*_in_ >> 4));
+								*cur++ = (byte)(scale * ((*_in_) & 0x0f));
+							}
+							if ((k) > (0))
+								*cur++ = (byte)(scale * (*_in_ >> 4));
+						}
+						else if ((depth) == (2))
+						{
+							for (k = (int)(x * img_n); (k) >= (4); k -= (int)(4), ++_in_)
+							{
+								*cur++ = (byte)(scale * (*_in_ >> 6));
+								*cur++ = (byte)(scale * ((*_in_ >> 4) & 0x03));
+								*cur++ = (byte)(scale * ((*_in_ >> 2) & 0x03));
+								*cur++ = (byte)(scale * ((*_in_) & 0x03));
+							}
+							if ((k) > (0))
+								*cur++ = (byte)(scale * (*_in_ >> 6));
+							if ((k) > (1))
+								*cur++ = (byte)(scale * ((*_in_ >> 4) & 0x03));
+							if ((k) > (2))
+								*cur++ = (byte)(scale * ((*_in_ >> 2) & 0x03));
+						}
+						else if ((depth) == (1))
+						{
+							for (k = (int)(x * img_n); (k) >= (8); k -= (int)(8), ++_in_)
+							{
+								*cur++ = (byte)(scale * (*_in_ >> 7));
+								*cur++ = (byte)(scale * ((*_in_ >> 6) & 0x01));
+								*cur++ = (byte)(scale * ((*_in_ >> 5) & 0x01));
+								*cur++ = (byte)(scale * ((*_in_ >> 4) & 0x01));
+								*cur++ = (byte)(scale * ((*_in_ >> 3) & 0x01));
+								*cur++ = (byte)(scale * ((*_in_ >> 2) & 0x01));
+								*cur++ = (byte)(scale * ((*_in_ >> 1) & 0x01));
+								*cur++ = (byte)(scale * ((*_in_) & 0x01));
+							}
+							if ((k) > (0))
+								*cur++ = (byte)(scale * (*_in_ >> 7));
+							if ((k) > (1))
+								*cur++ = (byte)(scale * ((*_in_ >> 6) & 0x01));
+							if ((k) > (2))
+								*cur++ = (byte)(scale * ((*_in_ >> 5) & 0x01));
+							if ((k) > (3))
+								*cur++ = (byte)(scale * ((*_in_ >> 4) & 0x01));
+							if ((k) > (4))
+								*cur++ = (byte)(scale * ((*_in_ >> 3) & 0x01));
+							if ((k) > (5))
+								*cur++ = (byte)(scale * ((*_in_ >> 2) & 0x01));
+							if ((k) > (6))
+								*cur++ = (byte)(scale * ((*_in_ >> 1) & 0x01));
+						}
+						if (img_n != out_n)
+						{
+							int q = 0;
+							cur = ptr + stride * j;
+							if ((img_n) == (1))
+							{
+								for (q = (int)(x - 1); (q) >= (0); --q)
+								{
+									cur[q * 2 + 1] = (byte)(255);
+									cur[q * 2 + 0] = (byte)(cur[q]);
+								}
+							}
+							else
+							{
+								for (q = (int)(x - 1); (q) >= (0); --q)
+								{
+									cur[q * 4 + 3] = (byte)(255);
+									cur[q * 4 + 2] = (byte)(cur[q * 3 + 2]);
+									cur[q * 4 + 1] = (byte)(cur[q * 3 + 1]);
+									cur[q * 4 + 0] = (byte)(cur[q * 3 + 0]);
+								}
+							}
+						}
+					}
+				}
+				else if ((depth) == (16))
+				{
+					byte* cur = ptr;
+					ushort* cur16 = (ushort*)(cur);
+					for (i = (uint)(0); (i) < (x * y * out_n); ++i, cur16++, cur += 2)
+					{
+						*cur16 = (ushort)((cur[0] << 8) | cur[1]);
+					}
 				}
 			}
 
@@ -396,11 +402,10 @@ namespace StbImageLib.Decoding
 		{
 			int bytes = (int)((depth) == (16) ? 2 : 1);
 			int out_bytes = (int)(out_n * bytes);
-			byte* final;
 			int p = 0;
 			if (interlaced == 0)
 				return (int)(stbi__create_png_image_raw(image_data, (uint)(image_data_len), (int)(out_n), (uint)(img_x), (uint)(img_y), (int)(depth), (int)(color)));
-			final = (byte*)(Utility.stbi__malloc_mad3((int)(img_x), (int)(img_y), (int)(out_bytes), (int)(0)));
+			var final = new byte[img_x * img_y * out_bytes];
 			for (p = (int)(0); (p) < (7); ++p)
 			{
 				int* xorig = stackalloc int[7];
@@ -446,19 +451,22 @@ namespace StbImageLib.Decoding
 					uint img_len = (uint)(((((img_n * x * depth) + 7) >> 3) + 1) * y);
 					if (stbi__create_png_image_raw(image_data, (uint)(image_data_len), (int)(out_n), (uint)(x), (uint)(y), (int)(depth), (int)(color)) == 0)
 					{
-						CRuntime.free(final);
 						return (int)(0);
 					}
-					for (j = (int)(0); (j) < (y); ++j)
+
+					fixed (byte* finalPtr = &final[0])
+					fixed (byte* outPtr = &_out_[0])
 					{
-						for (i = (int)(0); (i) < (x); ++i)
+						for (j = (int)(0); (j) < (y); ++j)
 						{
-							int out_y = (int)(j * yspc[p] + yorig[p]);
-							int out_x = (int)(i * xspc[p] + xorig[p]);
-							CRuntime.memcpy(final + out_y * img_x * out_bytes + out_x * out_bytes, _out_ + (j * x + i) * out_bytes, (ulong)(out_bytes));
+							for (i = (int)(0); (i) < (x); ++i)
+							{
+								int out_y = (int)(j * yspc[p] + yorig[p]);
+								int out_x = (int)(i * xspc[p] + xorig[p]);
+								CRuntime.memcpy(finalPtr + out_y * img_x * out_bytes + out_x * out_bytes, outPtr + (j * x + i) * out_bytes, (ulong)(out_bytes));
+							}
 						}
 					}
-					CRuntime.free(_out_);
 					image_data += img_len;
 					image_data_len -= (uint)(img_len);
 				}
@@ -471,22 +479,25 @@ namespace StbImageLib.Decoding
 		{
 			uint i = 0;
 			uint pixel_count = (uint)(img_x * img_y);
-			byte* p = _out_;
-			if ((out_n) == (2))
+			fixed (byte* p2 = &_out_[0])
 			{
-				for (i = (uint)(0); (i) < (pixel_count); ++i)
+				var p = p2;
+				if ((out_n) == (2))
 				{
-					p[1] = (byte)((p[0]) == (tc[0]) ? 0 : 255);
-					p += 2;
+					for (i = (uint)(0); (i) < (pixel_count); ++i)
+					{
+						p[1] = (byte)((p[0]) == (tc[0]) ? 0 : 255);
+						p += 2;
+					}
 				}
-			}
-			else
-			{
-				for (i = (uint)(0); (i) < (pixel_count); ++i)
+				else
 				{
-					if ((((p[0]) == (tc[0])) && ((p[1]) == (tc[1]))) && ((p[2]) == (tc[2])))
-						p[3] = (byte)(0);
-					p += 4;
+					for (i = (uint)(0); (i) < (pixel_count); ++i)
+					{
+						if ((((p[0]) == (tc[0])) && ((p[1]) == (tc[1]))) && ((p[2]) == (tc[2])))
+							p[3] = (byte)(0);
+						p += 4;
+					}
 				}
 			}
 
@@ -497,22 +508,25 @@ namespace StbImageLib.Decoding
 		{
 			uint i = 0;
 			uint pixel_count = (uint)(img_x * img_y);
-			ushort* p = (ushort*)(_out_);
-			if ((out_n) == (2))
+			fixed (byte* p2 = &_out_[0])
 			{
-				for (i = (uint)(0); (i) < (pixel_count); ++i)
+				ushort* p = (ushort*)p2;
+				if ((out_n) == (2))
 				{
-					p[1] = (ushort)((p[0]) == (tc[0]) ? 0 : 65535);
-					p += 2;
+					for (i = (uint)(0); (i) < (pixel_count); ++i)
+					{
+						p[1] = (ushort)((p[0]) == (tc[0]) ? 0 : 65535);
+						p += 2;
+					}
 				}
-			}
-			else
-			{
-				for (i = (uint)(0); (i) < (pixel_count); ++i)
+				else
 				{
-					if ((((p[0]) == (tc[0])) && ((p[1]) == (tc[1]))) && ((p[2]) == (tc[2])))
-						p[3] = (ushort)(0);
-					p += 4;
+					for (i = (uint)(0); (i) < (pixel_count); ++i)
+					{
+						if ((((p[0]) == (tc[0])) && ((p[1]) == (tc[1]))) && ((p[2]) == (tc[2])))
+							p[3] = (ushort)(0);
+						p += 4;
+					}
 				}
 			}
 
@@ -523,37 +537,36 @@ namespace StbImageLib.Decoding
 		{
 			uint i = 0;
 			uint pixel_count = (uint)(img_x * img_y);
-			byte* p;
-			byte* temp_out;
-			byte* orig = _out_;
-			p = (byte*)(Utility.stbi__malloc_mad2((int)(pixel_count), (int)(pal_img_n), (int)(0)));
-			temp_out = p;
-			if ((pal_img_n) == (3))
+			var orig = _out_;
+			_out_ = new byte[pixel_count * pal_img_n];
+			fixed (byte* p2 = &_out_[0])
 			{
-				for (i = (uint)(0); (i) < (pixel_count); ++i)
+				var p = p2;
+				if ((pal_img_n) == (3))
 				{
-					int n = (int)(orig[i] * 4);
-					p[0] = (byte)(palette[n]);
-					p[1] = (byte)(palette[n + 1]);
-					p[2] = (byte)(palette[n + 2]);
-					p += 3;
+					for (i = (uint)(0); (i) < (pixel_count); ++i)
+					{
+						int n = (int)(orig[i] * 4);
+						p[0] = (byte)(palette[n]);
+						p[1] = (byte)(palette[n + 1]);
+						p[2] = (byte)(palette[n + 2]);
+						p += 3;
+					}
 				}
-			}
-			else
-			{
-				for (i = (uint)(0); (i) < (pixel_count); ++i)
+				else
 				{
-					int n = (int)(orig[i] * 4);
-					p[0] = (byte)(palette[n]);
-					p[1] = (byte)(palette[n + 1]);
-					p[2] = (byte)(palette[n + 2]);
-					p[3] = (byte)(palette[n + 3]);
-					p += 4;
+					for (i = (uint)(0); (i) < (pixel_count); ++i)
+					{
+						int n = (int)(orig[i] * 4);
+						p[0] = (byte)(palette[n]);
+						p[1] = (byte)(palette[n + 1]);
+						p[2] = (byte)(palette[n + 2]);
+						p[3] = (byte)(palette[n + 3]);
+						p += 4;
+					}
 				}
 			}
 
-			CRuntime.free(_out_);
-			_out_ = temp_out;
 			return (int)(1);
 		}
 
@@ -571,52 +584,54 @@ namespace StbImageLib.Decoding
 		{
 			uint i = 0;
 			uint pixel_count = (uint)(img_x * img_y);
-			byte* p = _out_;
-			if ((img_out_n) == (3))
+			fixed (byte* p2 = &_out_[0])
 			{
-				for (i = (uint)(0); (i) < (pixel_count); ++i)
-				{
-					byte t = (byte)(p[0]);
-					p[0] = (byte)(p[2]);
-					p[2] = (byte)(t);
-					p += 3;
-				}
-			}
-			else
-			{
-				if ((stbi__unpremultiply_on_load) != 0)
-				{
-					for (i = (uint)(0); (i) < (pixel_count); ++i)
-					{
-						byte a = (byte)(p[3]);
-						byte t = (byte)(p[0]);
-						if ((a) != 0)
-						{
-							byte half = (byte)(a / 2);
-							p[0] = (byte)((p[2] * 255 + half) / a);
-							p[1] = (byte)((p[1] * 255 + half) / a);
-							p[2] = (byte)((t * 255 + half) / a);
-						}
-						else
-						{
-							p[0] = (byte)(p[2]);
-							p[2] = (byte)(t);
-						}
-						p += 4;
-					}
-				}
-				else
+				var p = p2;
+				if ((img_out_n) == (3))
 				{
 					for (i = (uint)(0); (i) < (pixel_count); ++i)
 					{
 						byte t = (byte)(p[0]);
 						p[0] = (byte)(p[2]);
 						p[2] = (byte)(t);
-						p += 4;
+						p += 3;
+					}
+				}
+				else
+				{
+					if ((stbi__unpremultiply_on_load) != 0)
+					{
+						for (i = (uint)(0); (i) < (pixel_count); ++i)
+						{
+							byte a = (byte)(p[3]);
+							byte t = (byte)(p[0]);
+							if ((a) != 0)
+							{
+								byte half = (byte)(a / 2);
+								p[0] = (byte)((p[2] * 255 + half) / a);
+								p[1] = (byte)((p[1] * 255 + half) / a);
+								p[2] = (byte)((t * 255 + half) / a);
+							}
+							else
+							{
+								p[0] = (byte)(p[2]);
+								p[2] = (byte)(t);
+							}
+							p += 4;
+						}
+					}
+					else
+					{
+						for (i = (uint)(0); (i) < (pixel_count); ++i)
+						{
+							byte t = (byte)(p[0]);
+							p[0] = (byte)(p[2]);
+							p[2] = (byte)(t);
+							p += 4;
+						}
 					}
 				}
 			}
-
 		}
 
 		private int stbi__parse_png_file(int scan, int req_comp)
@@ -628,8 +643,8 @@ namespace StbImageLib.Decoding
 			tc[0] = (byte)(0);
 
 			ushort* tc16 = stackalloc ushort[3];
-			uint ioff = (uint)(0);
-			uint idata_limit = (uint)(0);
+			int ioff = 0;
+			int idata_limit = 0;
 			uint i = 0;
 			uint pal_len = (uint)(0);
 			int first = (int)(1);
@@ -788,19 +803,18 @@ namespace StbImageLib.Decoding
 						if ((ioff + c.length) > (idata_limit))
 						{
 							uint idata_limit_old = (uint)(idata_limit);
-							byte* p;
 							if ((idata_limit) == (0))
-								idata_limit = (uint)((c.length) > (4096) ? c.length : 4096);
+								idata_limit = (int)((c.length) > (4096) ? c.length : 4096);
 							while ((ioff + c.length) > (idata_limit))
 							{
-								idata_limit *= (uint)(2);
+								idata_limit *= 2;
 							}
-							p = (byte*)(CRuntime.realloc(idata, (ulong)(idata_limit)));
-							idata = p;
+
+							Array.Resize(ref idata, idata_limit);
 						}
-						if (!stbi__getn(idata + ioff, (int)(c.length)))
+						if (!stbi__getn(idata, ioff, (int)(c.length)))
 							stbi__err("outofdata");
-						ioff += (uint)(c.length);
+						ioff += (int)(c.length);
 						break;
 					}
 					case (((uint)('I') << 24) + ((uint)('E') << 16) + ((uint)('N') << 8) + (uint)('D')):
@@ -815,10 +829,12 @@ namespace StbImageLib.Decoding
 							stbi__err("no IDAT");
 						bpl = (uint)((img_x * depth + 7) / 8);
 						raw_len = (uint)(bpl * img_y * img_n + img_y);
-						expanded = (byte*)(ZLib.stbi_zlib_decode_malloc_guesssize_headerflag((sbyte*)(idata), (int)(ioff), (int)(raw_len), (int*)(&raw_len), is_iphone != 0 ? 0 : 1));
+						fixed (byte* ptr = &idata[0])
+						{
+							expanded = (byte*)(ZLib.stbi_zlib_decode_malloc_guesssize_headerflag((sbyte *)ptr, (int)(ioff), (int)(raw_len), (int*)(&raw_len), is_iphone != 0 ? 0 : 1));
+						}
 						if ((expanded) == (null))
 							return (int)(0);
-						CRuntime.free(idata);
 						idata = (null);
 						if (((((req_comp) == (img_n + 1)) && (req_comp != 3)) && (pal_img_n == 0)) || ((has_trans) != 0))
 							img_out_n = (int)(img_n + 1);
@@ -873,7 +889,7 @@ namespace StbImageLib.Decoding
 			}
 		}
 
-		protected override ImageResult InternalDecode(ColorComponents? requiredComponents)
+		private ImageResult InternalDecode(ColorComponents? requiredComponents)
 		{
 			var req_comp = requiredComponents.ToReqComp();
 			if (((req_comp) < (0)) || ((req_comp) > (4)))
@@ -896,9 +912,9 @@ namespace StbImageLib.Decoding
 				if (((req_comp) != 0) && (req_comp != img_out_n))
 				{
 					if ((bits_per_channel) == (8))
-						result = Conversion.stbi__convert_format((byte*)(result), (int)(img_out_n), (int)(req_comp), (uint)(img_x), (uint)(img_y));
+						result = Conversion.stbi__convert_format(result, (int)(img_out_n), (int)(req_comp), (uint)(img_x), (uint)(img_y));
 					else
-						result = (byte *)Conversion.stbi__convert_format16((ushort*)(result), (int)(img_out_n), (int)(req_comp), (uint)(img_x), (uint)(img_y));
+						result = Conversion.stbi__convert_format16(result, (int)(img_out_n), (int)(req_comp), (uint)(img_x), (uint)(img_y));
 					img_out_n = (int)(req_comp);
 				}
 
@@ -910,15 +926,12 @@ namespace StbImageLib.Decoding
 					BitsPerChannel = bits_per_channel,
 					Data = result
 				};
-
 			}
 			finally
 			{
-				CRuntime.free(_out_);
 				_out_ = (null);
 				CRuntime.free(expanded);
 				expanded = (null);
-				CRuntime.free(idata);
 				idata = (null);
 			}
 		}
@@ -933,42 +946,28 @@ namespace StbImageLib.Decoding
 
 		public static ImageInfo? Info(Stream stream)
 		{
-			var decoder = 
-			if (stbi__parse_png_file((int)(STBI__SCAN_header), (int)(0)) == 0)
+			var decoder = new PngDecoder(stream);
+			var r = decoder.stbi__parse_png_file((int)(STBI__SCAN_header), (int)(0));
+			stream.Rewind();
+
+			if (r == 0)
 			{
-				stbi__rewind(p.s);
-				return (int)(0);
+				return null;
 			}
 
-			if ((x) != null)
-				*x = (int)(img_x);
-			if ((y) != null)
-				*y = (int)(img_y);
-			if ((comp) != null)
-				*comp = (int)(img_n);
-			return (int)(1);
-		}
-
-		private static int stbi__png_info(stbi__context s, int* x, int* y, int* comp)
-		{
-			stbi__png p = new stbi__png();
-			p.s = s;
-			return (int)(stbi__png_info_raw(p, x, y, comp));
-		}
-
-		private static int stbi__png_is16(stbi__context s)
-		{
-			stbi__png p = new stbi__png();
-			p.s = s;
-			if (stbi__png_info_raw(p, (null), (null), (null)) == 0)
-				return (int)(0);
-			if (depth != 16)
+			return new ImageInfo
 			{
-				stbi__rewind(p.s);
-				return (int)(0);
-			}
+				Width = decoder.img_x,
+				Height = decoder.img_y,
+				ColorComponents = (ColorComponents)decoder.img_n,
+				BitsPerChannel = decoder.depth
+			};
+		}
 
-			return (int)(1);
+		public static ImageResult Decode(Stream stream, ColorComponents? requiredComponents = null)
+		{
+			var decoder = new PngDecoder(stream);
+			return decoder.InternalDecode(requiredComponents);
 		}
 	}
 }

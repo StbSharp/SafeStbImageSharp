@@ -1178,7 +1178,7 @@ namespace StbImageLib.Decoding
 			}
 			if (scan != STBI__SCAN_load)
 				return (int)(1);
-			if (Utility.stbi__mad3sizes_valid((int)(img_x), (int)(img_y), (int)(img_n), (int)(0)) == 0)
+			if (Memory.stbi__mad3sizes_valid((int)(img_x), (int)(img_y), (int)(img_n), (int)(0)) == 0)
 				stbi__err("too large");
 			for (i = (int)(0); (i) < (img_n); ++i)
 			{
@@ -1202,13 +1202,13 @@ namespace StbImageLib.Decoding
 				img_comp[i].coeff = null;
 				img_comp[i].raw_coeff = null;
 				img_comp[i].linebuf = (null);
-				img_comp[i].raw_data = Utility.stbi__malloc_mad2((int)(img_comp[i].w2), (int)(img_comp[i].h2), (int)(15));
+				img_comp[i].raw_data = Memory.stbi__malloc_mad2((int)(img_comp[i].w2), (int)(img_comp[i].h2), (int)(15));
 				img_comp[i].data = (byte*)((((long)img_comp[i].raw_data + 15) & ~15));
 				if ((progressive) != 0)
 				{
 					img_comp[i].coeff_w = (int)(img_comp[i].w2 / 8);
 					img_comp[i].coeff_h = (int)(img_comp[i].h2 / 8);
-					img_comp[i].raw_coeff = Utility.stbi__malloc_mad3((int)(img_comp[i].w2), (int)(img_comp[i].h2), (int)(sizeof(short)), (int)(15));
+					img_comp[i].raw_coeff = Memory.stbi__malloc_mad3((int)(img_comp[i].w2), (int)(img_comp[i].h2), (int)(sizeof(short)), (int)(15));
 					img_comp[i].coeff = (short*)((((long)img_comp[i].raw_coeff + 15) & ~15));
 				}
 			}
@@ -1234,7 +1234,7 @@ namespace StbImageLib.Decoding
 				m = (int)(stbi__get_marker());
 				while ((m) == (0xff))
 				{
-					if ((stbi__at_eof()) != 0)
+					if (stbi__at_eof())
 						stbi__err("no SOF");
 					m = (int)(stbi__get_marker());
 				}
@@ -1267,7 +1267,7 @@ namespace StbImageLib.Decoding
 						return (int)(0);
 					if ((marker) == (0xff))
 					{
-						while (stbi__at_eof() == 0)
+						while (!stbi__at_eof())
 						{
 							int x = (int)(stbi__get8());
 							if ((x) == (255))
@@ -1439,7 +1439,7 @@ namespace StbImageLib.Decoding
 			return (byte)((t + (t >> 8)) >> 8);
 		}
 
-		private byte* load_jpeg_image(int* out_x, int* out_y, int* comp, int req_comp)
+		private byte[] load_jpeg_image(int* out_x, int* out_y, int* comp, int req_comp)
 		{
 			int n = 0;
 			int decode_n = 0;
@@ -1463,7 +1463,7 @@ namespace StbImageLib.Decoding
 				int k = 0;
 				uint i = 0;
 				uint j = 0;
-				byte* output;
+				byte[] output;
 				byte** coutput = stackalloc byte*[4];
 				coutput[0] = (null);
 				coutput[1] = (null);
@@ -1475,7 +1475,7 @@ namespace StbImageLib.Decoding
 				for (k = (int)(0); (k) < (decode_n); ++k)
 				{
 					stbi__resample r = res_comp[k];
-					img_comp[k].linebuf = (byte*)(Utility.stbi__malloc((ulong)(img_x + 3)));
+					img_comp[k].linebuf = (byte*)(Memory.stbi__malloc((ulong)(img_x + 3)));
 					r.hs = (int)(img_h_max / img_comp[k].h);
 					r.vs = (int)(img_v_max / img_comp[k].v);
 					r.ystep = (int)(r.vs >> 1);
@@ -1493,137 +1493,141 @@ namespace StbImageLib.Decoding
 					else
 						r.resample = stbi__resample_row_generic;
 				}
-				output = (byte*)(Utility.stbi__malloc_mad3((int)(n), (int)(img_x), (int)(img_y), (int)(1)));
-				for (j = (uint)(0); (j) < (img_y); ++j)
+
+				output = new byte[n * img_x * img_y + 1];
+				fixed (byte* ptr = &output[0])
 				{
-					byte* _out_ = output + n * img_x * j;
-					for (k = (int)(0); (k) < (decode_n); ++k)
+					for (j = (uint)(0); (j) < (img_y); ++j)
 					{
-						stbi__resample r = res_comp[k];
-						int y_bot = (int)((r.ystep) >= (r.vs >> 1) ? 1 : 0);
-						coutput[k] = r.resample(img_comp[k].linebuf, (y_bot) != 0 ? r.line1 : r.line0, (y_bot) != 0 ? r.line0 : r.line1, (int)(r.w_lores), (int)(r.hs));
-						if ((++r.ystep) >= (r.vs))
+						byte* _out_ = ptr + n * img_x * j;
+						for (k = (int)(0); (k) < (decode_n); ++k)
 						{
-							r.ystep = (int)(0);
-							r.line0 = r.line1;
-							if ((++r.ypos) < (img_comp[k].y))
-								r.line1 += img_comp[k].w2;
+							stbi__resample r = res_comp[k];
+							int y_bot = (int)((r.ystep) >= (r.vs >> 1) ? 1 : 0);
+							coutput[k] = r.resample(img_comp[k].linebuf, (y_bot) != 0 ? r.line1 : r.line0, (y_bot) != 0 ? r.line0 : r.line1, (int)(r.w_lores), (int)(r.hs));
+							if ((++r.ystep) >= (r.vs))
+							{
+								r.ystep = (int)(0);
+								r.line0 = r.line1;
+								if ((++r.ypos) < (img_comp[k].y))
+									r.line1 += img_comp[k].w2;
+							}
 						}
-					}
-					if ((n) >= (3))
-					{
-						byte* y = coutput[0];
-						if ((img_n) == (3))
+						if ((n) >= (3))
+						{
+							byte* y = coutput[0];
+							if ((img_n) == (3))
+							{
+								if ((is_rgb) != 0)
+								{
+									for (i = (uint)(0); (i) < (img_x); ++i)
+									{
+										_out_[0] = (byte)(y[i]);
+										_out_[1] = (byte)(coutput[1][i]);
+										_out_[2] = (byte)(coutput[2][i]);
+										_out_[3] = (byte)(255);
+										_out_ += n;
+									}
+								}
+								else
+								{
+									YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
+								}
+							}
+							else if ((img_n) == (4))
+							{
+								if ((app14_color_transform) == (0))
+								{
+									for (i = (uint)(0); (i) < (img_x); ++i)
+									{
+										byte m = (byte)(coutput[3][i]);
+										_out_[0] = (byte)(stbi__blinn_8x8((byte)(coutput[0][i]), (byte)(m)));
+										_out_[1] = (byte)(stbi__blinn_8x8((byte)(coutput[1][i]), (byte)(m)));
+										_out_[2] = (byte)(stbi__blinn_8x8((byte)(coutput[2][i]), (byte)(m)));
+										_out_[3] = (byte)(255);
+										_out_ += n;
+									}
+								}
+								else if ((app14_color_transform) == (2))
+								{
+									YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
+									for (i = (uint)(0); (i) < (img_x); ++i)
+									{
+										byte m = (byte)(coutput[3][i]);
+										_out_[0] = (byte)(stbi__blinn_8x8((byte)(255 - _out_[0]), (byte)(m)));
+										_out_[1] = (byte)(stbi__blinn_8x8((byte)(255 - _out_[1]), (byte)(m)));
+										_out_[2] = (byte)(stbi__blinn_8x8((byte)(255 - _out_[2]), (byte)(m)));
+										_out_ += n;
+									}
+								}
+								else
+								{
+									YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
+								}
+							}
+							else
+								for (i = (uint)(0); (i) < (img_x); ++i)
+								{
+									_out_[0] = (byte)(_out_[1] = (byte)(_out_[2] = (byte)(y[i])));
+									_out_[3] = (byte)(255);
+									_out_ += n;
+								}
+						}
+						else
 						{
 							if ((is_rgb) != 0)
 							{
-								for (i = (uint)(0); (i) < (img_x); ++i)
+								if ((n) == (1))
+									for (i = (uint)(0); (i) < (img_x); ++i)
+									{
+										*_out_++ = (byte)(Conversion.stbi__compute_y((int)(coutput[0][i]), (int)(coutput[1][i]), (int)(coutput[2][i])));
+									}
+								else
 								{
-									_out_[0] = (byte)(y[i]);
-									_out_[1] = (byte)(coutput[1][i]);
-									_out_[2] = (byte)(coutput[2][i]);
-									_out_[3] = (byte)(255);
-									_out_ += n;
+									for (i = (uint)(0); (i) < (img_x); ++i, _out_ += 2)
+									{
+										_out_[0] = (byte)(Conversion.stbi__compute_y((int)(coutput[0][i]), (int)(coutput[1][i]), (int)(coutput[2][i])));
+										_out_[1] = (byte)(255);
+									}
 								}
 							}
-							else
+							else if (((img_n) == (4)) && ((app14_color_transform) == (0)))
 							{
-								YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
-							}
-						}
-						else if ((img_n) == (4))
-						{
-							if ((app14_color_transform) == (0))
-							{
-								for (i = (uint)(0); (i) < (img_x); ++i)
-								{
-									byte m = (byte)(coutput[3][i]);
-									_out_[0] = (byte)(stbi__blinn_8x8((byte)(coutput[0][i]), (byte)(m)));
-									_out_[1] = (byte)(stbi__blinn_8x8((byte)(coutput[1][i]), (byte)(m)));
-									_out_[2] = (byte)(stbi__blinn_8x8((byte)(coutput[2][i]), (byte)(m)));
-									_out_[3] = (byte)(255);
-									_out_ += n;
-								}
-							}
-							else if ((app14_color_transform) == (2))
-							{
-								YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
 								for (i = (uint)(0); (i) < (img_x); ++i)
 								{
 									byte m = (byte)(coutput[3][i]);
-									_out_[0] = (byte)(stbi__blinn_8x8((byte)(255 - _out_[0]), (byte)(m)));
-									_out_[1] = (byte)(stbi__blinn_8x8((byte)(255 - _out_[1]), (byte)(m)));
-									_out_[2] = (byte)(stbi__blinn_8x8((byte)(255 - _out_[2]), (byte)(m)));
-									_out_ += n;
-								}
-							}
-							else
-							{
-								YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
-							}
-						}
-						else
-							for (i = (uint)(0); (i) < (img_x); ++i)
-							{
-								_out_[0] = (byte)(_out_[1] = (byte)(_out_[2] = (byte)(y[i])));
-								_out_[3] = (byte)(255);
-								_out_ += n;
-							}
-					}
-					else
-					{
-						if ((is_rgb) != 0)
-						{
-							if ((n) == (1))
-								for (i = (uint)(0); (i) < (img_x); ++i)
-								{
-									*_out_++ = (byte)(Conversion.stbi__compute_y((int)(coutput[0][i]), (int)(coutput[1][i]), (int)(coutput[2][i])));
-								}
-							else
-							{
-								for (i = (uint)(0); (i) < (img_x); ++i, _out_ += 2)
-								{
-									_out_[0] = (byte)(Conversion.stbi__compute_y((int)(coutput[0][i]), (int)(coutput[1][i]), (int)(coutput[2][i])));
+									byte r = (byte)(stbi__blinn_8x8((byte)(coutput[0][i]), (byte)(m)));
+									byte g = (byte)(stbi__blinn_8x8((byte)(coutput[1][i]), (byte)(m)));
+									byte b = (byte)(stbi__blinn_8x8((byte)(coutput[2][i]), (byte)(m)));
+									_out_[0] = (byte)(Conversion.stbi__compute_y((int)(r), (int)(g), (int)(b)));
 									_out_[1] = (byte)(255);
+									_out_ += n;
 								}
 							}
-						}
-						else if (((img_n) == (4)) && ((app14_color_transform) == (0)))
-						{
-							for (i = (uint)(0); (i) < (img_x); ++i)
+							else if (((img_n) == (4)) && ((app14_color_transform) == (2)))
 							{
-								byte m = (byte)(coutput[3][i]);
-								byte r = (byte)(stbi__blinn_8x8((byte)(coutput[0][i]), (byte)(m)));
-								byte g = (byte)(stbi__blinn_8x8((byte)(coutput[1][i]), (byte)(m)));
-								byte b = (byte)(stbi__blinn_8x8((byte)(coutput[2][i]), (byte)(m)));
-								_out_[0] = (byte)(Conversion.stbi__compute_y((int)(r), (int)(g), (int)(b)));
-								_out_[1] = (byte)(255);
-								_out_ += n;
-							}
-						}
-						else if (((img_n) == (4)) && ((app14_color_transform) == (2)))
-						{
-							for (i = (uint)(0); (i) < (img_x); ++i)
-							{
-								_out_[0] = (byte)(stbi__blinn_8x8((byte)(255 - coutput[0][i]), (byte)(coutput[3][i])));
-								_out_[1] = (byte)(255);
-								_out_ += n;
-							}
-						}
-						else
-						{
-							byte* y = coutput[0];
-							if ((n) == (1))
 								for (i = (uint)(0); (i) < (img_x); ++i)
 								{
-									_out_[i] = (byte)(y[i]);
+									_out_[0] = (byte)(stbi__blinn_8x8((byte)(255 - coutput[0][i]), (byte)(coutput[3][i])));
+									_out_[1] = (byte)(255);
+									_out_ += n;
 								}
+							}
 							else
-								for (i = (uint)(0); (i) < (img_x); ++i)
-								{
-									*_out_++ = (byte)(y[i]);
-									*_out_++ = (byte)(255);
-								}
+							{
+								byte* y = coutput[0];
+								if ((n) == (1))
+									for (i = (uint)(0); (i) < (img_x); ++i)
+									{
+										_out_[i] = (byte)(y[i]);
+									}
+								else
+									for (i = (uint)(0); (i) < (img_x); ++i)
+									{
+										*_out_++ = (byte)(y[i]);
+										*_out_++ = (byte)(255);
+									}
+							}
 						}
 					}
 				}
@@ -1636,7 +1640,7 @@ namespace StbImageLib.Decoding
 			}
 		}
 
-		protected override ImageResult InternalDecode(ColorComponents? requiredComponents)
+		private ImageResult InternalDecode(ColorComponents? requiredComponents)
 		{
 			stbi__setup_jpeg();
 
@@ -1679,7 +1683,8 @@ namespace StbImageLib.Decoding
 			{
 				Width = (int)decoder.img_x,
 				Height = (int)decoder.img_y,
-				ColorComponents = decoder.img_n >= 3 ? ColorComponents.RedGreenBlue: ColorComponents.Grey
+				ColorComponents = decoder.img_n >= 3 ? ColorComponents.RedGreenBlue: ColorComponents.Grey,
+				BitsPerChannel = 8
 			};
 		}
 

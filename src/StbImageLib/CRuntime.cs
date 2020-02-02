@@ -1,4 +1,5 @@
-﻿using System;
+﻿using StbImageLib.Utility;
+using System;
 using System.Runtime.InteropServices;
 
 namespace StbImageLib

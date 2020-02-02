@@ -1,6 +1,6 @@
-﻿namespace StbImageLib.Decoding
+﻿namespace StbImageLib.Utility
 {
-	internal unsafe static class Utility
+	internal unsafe static class Memory
 	{
 		public static void* stbi__malloc(int size)
 		{

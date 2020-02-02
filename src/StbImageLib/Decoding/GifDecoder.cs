@@ -17,7 +17,7 @@ namespace StbImageLib.Decoding
 
 		private int w;
 		private int h;
-		private byte* _out_;
+		private byte[] _out_;
 		private byte* background;
 		private byte* history;
 		private int flags;
@@ -28,7 +28,7 @@ namespace StbImageLib.Decoding
 		private int delay;
 		private byte* pal;
 		private byte* lpal;
-		private stbi__gif_lzw* codes = (stbi__gif_lzw*)Utility.stbi__malloc(8192 * sizeof(stbi__gif_lzw));
+		private stbi__gif_lzw* codes = (stbi__gif_lzw*)Memory.stbi__malloc(8192 * sizeof(stbi__gif_lzw));
 		private byte* color_table;
 		private int parse;
 		private int step;
@@ -43,8 +43,8 @@ namespace StbImageLib.Decoding
 
 		private GifDecoder(Stream stream): base(stream)
 		{
-			pal = (byte*)Utility.stbi__malloc(256 * 4 * sizeof(byte));
-			lpal = (byte*)Utility.stbi__malloc(256 * 4 * sizeof(byte));
+			pal = (byte*)Memory.stbi__malloc(256 * 4 * sizeof(byte));
+			lpal = (byte*)Memory.stbi__malloc(256 * 4 * sizeof(byte));
 		}
 
 		~GifDecoder()
@@ -112,7 +112,6 @@ namespace StbImageLib.Decoding
 
 		private void stbi__out_gif_code(ushort code)
 		{
-			byte* p;
 			byte* c;
 			int idx = 0;
 			if ((codes[code].prefix) >= (0))
@@ -120,15 +119,17 @@ namespace StbImageLib.Decoding
 			if ((cur_y) >= (max_y))
 				return;
 			idx = (int)(cur_x + cur_y);
-			p = &_out_[idx];
 			history[idx / 4] = (byte)(1);
 			c = &color_table[codes[code].suffix * 4];
 			if ((c[3]) > (128))
 			{
-				p[0] = (byte)(c[2]);
-				p[1] = (byte)(c[1]);
-				p[2] = (byte)(c[0]);
-				p[3] = (byte)(c[3]);
+				fixed (byte* p = &_out_[idx])
+				{
+					p[0] = (byte)(c[2]);
+					p[1] = (byte)(c[1]);
+					p[2] = (byte)(c[0]);
+					p[3] = (byte)(c[3]);
+				}
 			}
 
 			cur_x += (int)(4);
@@ -143,10 +144,9 @@ namespace StbImageLib.Decoding
 					--parse;
 				}
 			}
-
 		}
 
-		private byte* stbi__process_gif_raster()
+		private byte[] stbi__process_gif_raster()
 		{
 			byte lzw_cs = 0;
 			int len = 0;
@@ -249,7 +249,7 @@ namespace StbImageLib.Decoding
 			}
 		}
 
-		private byte* stbi__gif_load_next(int* comp, byte* two_back)
+		private byte[] stbi__gif_load_next(int* comp, byte* two_back)
 		{
 			int dispose = 0;
 			int first_frame = 0;
@@ -260,49 +260,52 @@ namespace StbImageLib.Decoding
 			{
 				if (stbi__gif_header(comp, (int)(0)) == 0)
 					return null;
-				if (Utility.stbi__mad3sizes_valid((int)(4), (int)(w), (int)(h), (int)(0)) == 0)
+				if (Memory.stbi__mad3sizes_valid((int)(4), (int)(w), (int)(h), (int)(0)) == 0)
 					stbi__err("too large");
 				pcount = (int)(w * h);
-				_out_ = (byte*)(Utility.stbi__malloc((ulong)(4 * pcount)));
-				background = (byte*)(Utility.stbi__malloc((ulong)(4 * pcount)));
-				history = (byte*)(Utility.stbi__malloc((ulong)(pcount)));
-				CRuntime.memset(_out_, (int)(0x00), (ulong)(4 * pcount));
+				_out_ = new byte[4 * pcount];
+				background = (byte*)(Memory.stbi__malloc((ulong)(4 * pcount)));
+				history = (byte*)(Memory.stbi__malloc((ulong)(pcount)));
+				Array.Clear(_out_, 0, _out_.Length);
 				CRuntime.memset(background, (int)(0x00), (ulong)(4 * pcount));
 				CRuntime.memset(history, (int)(0x00), (ulong)(pcount));
 				first_frame = (int)(1);
 			}
 			else
 			{
-				dispose = (int)((eflags & 0x1C) >> 2);
-				pcount = (int)(w * h);
-				if (((dispose) == (3)) && ((two_back) == (null)))
+				fixed (byte* ptr = &_out_[0])
 				{
-					dispose = (int)(2);
-				}
-				if ((dispose) == (3))
-				{
-					for (pi = (int)(0); (pi) < (pcount); ++pi)
+					dispose = (int)((eflags & 0x1C) >> 2);
+					pcount = (int)(w * h);
+					if (((dispose) == (3)) && ((two_back) == (null)))
 					{
-						if ((history[pi]) != 0)
+						dispose = (int)(2);
+					}
+					if ((dispose) == (3))
+					{
+						for (pi = (int)(0); (pi) < (pcount); ++pi)
 						{
-							CRuntime.memcpy(&_out_[pi * 4], &two_back[pi * 4], (ulong)(4));
+							if ((history[pi]) != 0)
+							{
+								CRuntime.memcpy(&ptr[pi * 4], &two_back[pi * 4], (ulong)(4));
+							}
 						}
 					}
-				}
-				else if ((dispose) == (2))
-				{
-					for (pi = (int)(0); (pi) < (pcount); ++pi)
+					else if ((dispose) == (2))
 					{
-						if ((history[pi]) != 0)
+						for (pi = (int)(0); (pi) < (pcount); ++pi)
 						{
-							CRuntime.memcpy(&_out_[pi * 4], &background[pi * 4], (ulong)(4));
+							if ((history[pi]) != 0)
+							{
+								CRuntime.memcpy(&ptr[pi * 4], &background[pi * 4], (ulong)(4));
+							}
 						}
 					}
+					else
+					{
+					}
+					CRuntime.memcpy(background, ptr, (ulong)(4 * w * h));
 				}
-				else
-				{
-				}
-				CRuntime.memcpy(background, _out_, (ulong)(4 * w * h));
 			}
 
 			CRuntime.memset(history, (int)(0x00), (ulong)(w * h));
@@ -317,7 +320,7 @@ namespace StbImageLib.Decoding
 						int y = 0;
 						int w = 0;
 						int h = 0;
-						byte* o;
+						byte[] o;
 						x = (int)(stbi__get16le());
 						y = (int)(stbi__get16le());
 						w = (int)(stbi__get16le());
@@ -361,12 +364,15 @@ namespace StbImageLib.Decoding
 						pcount = (int)(w * h);
 						if (((first_frame) != 0) && ((bgindex) > (0)))
 						{
-							for (pi = (int)(0); (pi) < (pcount); ++pi)
+							fixed (byte* ptr = &_out_[0])
 							{
-								if ((history[pi]) == (0))
+								for (pi = (int)(0); (pi) < (pcount); ++pi)
 								{
-									pal[bgindex * 4 + 3] = (byte)(255);
-									CRuntime.memcpy(&_out_[pi * 4], &pal[bgindex], (ulong)(4));
+									if ((history[pi]) == (0))
+									{
+										pal[bgindex * 4 + 3] = (byte)(255);
+										CRuntime.memcpy(&ptr[pi * 4], &pal[bgindex], (ulong)(4));
+									}
 								}
 							}
 						}
@@ -487,7 +493,7 @@ namespace StbImageLib.Decoding
 
 				}*/
 
-		protected override ImageResult InternalDecode(ColorComponents? requiredComponents)
+		private ImageResult InternalDecode(ColorComponents? requiredComponents)
 		{
 			try
 			{
@@ -495,8 +501,7 @@ namespace StbImageLib.Decoding
 				var u = stbi__gif_load_next(&comp, null);
 				if (u == null)
 				{
-					CRuntime.SafeFree(ref _out_);
-					return null;
+					throw new Exception("could not decode gif");
 				}
 
 				if (requiredComponents != null && requiredComponents.Value != ColorComponents.RedGreenBlueAlpha)
@@ -531,7 +536,7 @@ namespace StbImageLib.Decoding
 			return true;
 		}
 
-		public static bool IsGif(Stream stream)
+		public static bool Test(Stream stream)
 		{
 			var result = InternalTest(stream);
 			stream.Rewind();
@@ -554,7 +559,8 @@ namespace StbImageLib.Decoding
 			{
 				Width = decoder.w,
 				Height = decoder.h,
-				ColorComponents = (ColorComponents)comp
+				ColorComponents = (ColorComponents)comp,
+				BitsPerChannel = 8
 			};
 		}
 

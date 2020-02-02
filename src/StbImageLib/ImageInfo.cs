@@ -5,5 +5,6 @@
 		public int Width;
 		public int Height;
 		public ColorComponents ColorComponents;
+		public int BitsPerChannel;
 	}
 }
