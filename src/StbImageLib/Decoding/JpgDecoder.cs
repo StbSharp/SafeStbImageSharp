@@ -1494,7 +1494,7 @@ namespace StbImageLib.Decoding
 						r.resample = stbi__resample_row_generic;
 				}
 
-				output = new byte[n * img_x * img_y + 1];
+				output = new byte[n * img_x * img_y];
 				fixed (byte* ptr = &output[0])
 				{
 					for (j = (uint)(0); (j) < (img_y); ++j)

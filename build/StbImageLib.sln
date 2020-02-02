@@ -5,6 +5,10 @@ VisualStudioVersion = 15.0.28010.2036
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StbImageLib", "..\src\StbImageLib\StbImageLib.csproj", "{750E8DC6-0AF8-4772-8931-1623D0EA49CC}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{56C50AF4-B951-44C2-962F-89DB441ACEBD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StbImageLib.Samples.MonoGame", "..\samples\StbImageLib.Samples.MonoGame\StbImageLib.Samples.MonoGame.csproj", "{4E1D18DA-4594-408F-AC3A-2C3D7357C9DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,9 +19,16 @@ Global
 		{750E8DC6-0AF8-4772-8931-1623D0EA49CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{750E8DC6-0AF8-4772-8931-1623D0EA49CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{750E8DC6-0AF8-4772-8931-1623D0EA49CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E1D18DA-4594-408F-AC3A-2C3D7357C9DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E1D18DA-4594-408F-AC3A-2C3D7357C9DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E1D18DA-4594-408F-AC3A-2C3D7357C9DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E1D18DA-4594-408F-AC3A-2C3D7357C9DF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4E1D18DA-4594-408F-AC3A-2C3D7357C9DF} = {56C50AF4-B951-44C2-962F-89DB441ACEBD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C9C812E7-F89A-4B6E-8F9D-981D5F8BBAB3}
