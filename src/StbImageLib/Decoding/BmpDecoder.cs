@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace StbImageLib.Decoding
 {
-	public unsafe class BmpDecoder: Decoder
+	public class BmpDecoder: Decoder
 	{
 		[StructLayout(LayoutKind.Sequential)]
 		public struct stbi__bmp_data
@@ -19,6 +19,9 @@ namespace StbImageLib.Decoding
 			public uint ma;
 			public uint all_a;
 		}
+
+		private static uint[] mul_table = { 0, 0xff, 0x55, 0x49, 0x11, 0x21, 0x41, 0x81, 0x01 };
+		private static uint[] shift_table = { 0, 0, 0, 1, 0, 2, 4, 6, 0 };
 
 		private BmpDecoder(Stream stream): base(stream)
 		{
@@ -74,28 +77,6 @@ namespace StbImageLib.Decoding
 
 		private static int stbi__shiftsigned(uint v, int shift, int bits)
 		{
-			uint* mul_table = stackalloc uint[9];
-			mul_table[0] = (uint)(0);
-			mul_table[1] = (uint)(0xff);
-			mul_table[2] = (uint)(0x55);
-			mul_table[3] = (uint)(0x49);
-			mul_table[4] = (uint)(0x11);
-			mul_table[5] = (uint)(0x21);
-			mul_table[6] = (uint)(0x41);
-			mul_table[7] = (uint)(0x81);
-			mul_table[8] = (uint)(0x01);
-
-			uint* shift_table = stackalloc uint[9];
-			shift_table[0] = (uint)(0);
-			shift_table[1] = (uint)(0);
-			shift_table[2] = (uint)(0);
-			shift_table[3] = (uint)(1);
-			shift_table[4] = (uint)(0);
-			shift_table[5] = (uint)(2);
-			shift_table[6] = (uint)(4);
-			shift_table[7] = (uint)(6);
-			shift_table[8] = (uint)(0);
-
 			if ((shift) < (0))
 				v <<= -shift;
 			else
@@ -104,7 +85,7 @@ namespace StbImageLib.Decoding
 			return (int)((int)(v * (int)mul_table[bits]) >> (int)shift_table[bits]);
 		}
 
-		private void* stbi__bmp_parse_header(stbi__bmp_data* info)
+		private void stbi__bmp_parse_header(ref stbi__bmp_data info)
 		{
 			int hsz = 0;
 			if ((stbi__get8() != 'B') || (stbi__get8() != 'M'))
@@ -112,9 +93,9 @@ namespace StbImageLib.Decoding
 			stbi__get32le();
 			stbi__get16le();
 			stbi__get16le();
-			info->offset = (int)(stbi__get32le());
-			info->hsz = (int)(hsz = (int)(stbi__get32le()));
-			info->mr = (uint)(info->mg = (uint)(info->mb = (uint)(info->ma = (uint)(0))));
+			info.offset = (int)(stbi__get32le());
+			info.hsz = (int)(hsz = (int)(stbi__get32le()));
+			info.mr = (uint)(info.mg = (uint)(info.mb = (uint)(info.ma = (uint)(0))));
 			if (((((hsz != 12) && (hsz != 40)) && (hsz != 56)) && (hsz != 108)) && (hsz != 124))
 				stbi__err("unknown BMP");
 			if ((hsz) == (12))
@@ -130,7 +111,7 @@ namespace StbImageLib.Decoding
 
 			if (stbi__get16le() != 1)
 				stbi__err("bad BMP");
-			info->bpp = (int)(stbi__get16le());
+			info.bpp = (int)(stbi__get16le());
 			if (hsz != 12)
 			{
 				int compress = (int)(stbi__get32le());
@@ -150,31 +131,31 @@ namespace StbImageLib.Decoding
 						stbi__get32le();
 						stbi__get32le();
 					}
-					if (((info->bpp) == (16)) || ((info->bpp) == (32)))
+					if (((info.bpp) == (16)) || ((info.bpp) == (32)))
 					{
 						if ((compress) == (0))
 						{
-							if ((info->bpp) == (32))
+							if ((info.bpp) == (32))
 							{
-								info->mr = (uint)(0xffu << 16);
-								info->mg = (uint)(0xffu << 8);
-								info->mb = (uint)(0xffu << 0);
-								info->ma = (uint)(0xffu << 24);
-								info->all_a = (uint)(0);
+								info.mr = (uint)(0xffu << 16);
+								info.mg = (uint)(0xffu << 8);
+								info.mb = (uint)(0xffu << 0);
+								info.ma = (uint)(0xffu << 24);
+								info.all_a = (uint)(0);
 							}
 							else
 							{
-								info->mr = (uint)(31u << 10);
-								info->mg = (uint)(31u << 5);
-								info->mb = (uint)(31u << 0);
+								info.mr = (uint)(31u << 10);
+								info.mg = (uint)(31u << 5);
+								info.mb = (uint)(31u << 0);
 							}
 						}
 						else if ((compress) == (3))
 						{
-							info->mr = (uint)(stbi__get32le());
-							info->mg = (uint)(stbi__get32le());
-							info->mb = (uint)(stbi__get32le());
-							if (((info->mr) == (info->mg)) && ((info->mg) == (info->mb)))
+							info.mr = (uint)(stbi__get32le());
+							info.mg = (uint)(stbi__get32le());
+							info.mb = (uint)(stbi__get32le());
+							if (((info.mr) == (info.mg)) && ((info.mg) == (info.mb)))
 							{
 								stbi__err("bad BMP");
 							}
@@ -188,10 +169,10 @@ namespace StbImageLib.Decoding
 					int i = 0;
 					if ((hsz != 108) && (hsz != 124))
 						stbi__err("bad BMP");
-					info->mr = (uint)(stbi__get32le());
-					info->mg = (uint)(stbi__get32le());
-					info->mb = (uint)(stbi__get32le());
-					info->ma = (uint)(stbi__get32le());
+					info.mr = (uint)(stbi__get32le());
+					info.mg = (uint)(stbi__get32le());
+					info.mb = (uint)(stbi__get32le());
+					info.ma = (uint)(stbi__get32le());
 					stbi__get32le();
 					for (i = (int)(0); (i) < (12); ++i)
 					{
@@ -206,8 +187,6 @@ namespace StbImageLib.Decoding
 					}
 				}
 			}
-
-			return (void*)(1);
 		}
 
 		private ImageResult InternalDecode(ColorComponents? requiredComponents)
@@ -218,7 +197,7 @@ namespace StbImageLib.Decoding
 			uint mb = (uint)(0);
 			uint ma = (uint)(0);
 			uint all_a = 0;
-			byte* pal = stackalloc byte[256 * 4];
+			byte[] pal = new byte[256 * 4];
 			int psize = (int)(0);
 			int i = 0;
 			int j = 0;
@@ -228,8 +207,7 @@ namespace StbImageLib.Decoding
 			int target = 0;
 			stbi__bmp_data info = new stbi__bmp_data();
 			info.all_a = (uint)(255);
-			if ((stbi__bmp_parse_header(&info)) == (null))
-				return (null);
+			stbi__bmp_parse_header(ref info);
 			flip_vertically = (int)(((int)(img_y)) > (0) ? 1 : 0);
 			img_y = Math.Abs((int)(img_y));
 			mr = (uint)(info.mr);
@@ -429,12 +407,11 @@ namespace StbImageLib.Decoding
 			if ((flip_vertically) != 0)
 			{
 				byte t = 0;
-				fixed (byte* ptr = &_out_[0])
-				{
+				var ptr = new FakePtr<byte>(_out_);
 					for (j = (int)(0); (j) < ((int)(img_y) >> 1); ++j)
 					{
-						byte* p1 = ptr + j * img_x * target;
-						byte* p2 = ptr + (img_y - 1 - j) * img_x * target;
+						FakePtr<byte> p1 = ptr + j * img_x * target;
+						FakePtr<byte> p2 = ptr + (img_y - 1 - j) * img_x * target;
 						for (i = (int)(0); (i) < ((int)(img_x) * target); ++i)
 						{
 							t = (byte)(p1[i]);
@@ -442,7 +419,6 @@ namespace StbImageLib.Decoding
 							p2[i] = (byte)(t);
 						}
 					}
-				}
 			}
 
 			if (requiredComponents != null && (int)requiredComponents.Value != target)
@@ -487,17 +463,24 @@ namespace StbImageLib.Decoding
 
 		public static ImageInfo? Info(Stream stream)
 		{
-			void* p;
 			stbi__bmp_data info = new stbi__bmp_data
 			{
 				all_a = (uint)(255)
 			};
 
 			var decoder = new BmpDecoder(stream);
-			p = decoder.stbi__bmp_parse_header(&info);
-			stream.Rewind();
-			if ((p) == (null))
+			try
+			{
+				decoder.stbi__bmp_parse_header(ref info);
+			}
+			catch (Exception)
+			{
 				return null;
+			}
+			finally
+			{
+				stream.Rewind();
+			}
 
 			return new ImageInfo
 			{

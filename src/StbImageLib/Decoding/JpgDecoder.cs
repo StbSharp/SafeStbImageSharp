@@ -1,11 +1,12 @@
 ﻿using StbImageLib.Utility;
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
 namespace StbImageLib.Decoding
 {
 	[StructLayout(LayoutKind.Sequential)]
-	internal unsafe struct img_comp
+	internal struct img_comp
 	{
 		public int id;
 		public int h, v;
@@ -14,25 +15,25 @@ namespace StbImageLib.Decoding
 		public int dc_pred;
 
 		public int x, y, w2, h2;
-		public byte* data;
-		public void* raw_data;
-		public void* raw_coeff;
-		public byte* linebuf;
-		public short* coeff; // progressive only
+		public byte[] raw_data;
+		public FakePtr<byte> data;
+		public short[] raw_coeff;
+		public FakePtr<short> coeff; // progressive only
+		public byte[] linebuf;
 		public int coeff_w, coeff_h; // number of 8x8 coefficient blocks
 	}
 
-	internal unsafe delegate void idct_block_kernel(byte* output, int out_stride, short* data);
+	internal delegate void idct_block_kernel(FakePtr<byte> output, int out_stride, FakePtr<short> data);
 
-	internal unsafe delegate void YCbCr_to_RGB_kernel(byte* output, byte* y, byte* pcb, byte* pcr, int count, int step);
+	internal delegate void YCbCr_to_RGB_kernel(FakePtr<byte> output, FakePtr<byte> y, FakePtr<byte> pcb, FakePtr<byte> pcr, int count, int step);
 
-	internal unsafe delegate byte* Resampler(byte* a, byte* b, byte* c, int d, int e);
+	internal delegate FakePtr<byte> Resampler(FakePtr<byte> a, FakePtr<byte> b, FakePtr<byte> c, int d, int e);
 
-	internal unsafe class stbi__resample
+	internal class stbi__resample
 	{
 		public Resampler resample;
-		public byte* line0;
-		public byte* line1;
+		public FakePtr<byte> line0;
+		public FakePtr<byte> line1;
 		public int hs;
 		public int vs;
 		public int w_lores;
@@ -40,7 +41,7 @@ namespace StbImageLib.Decoding
 		public int ypos;
 	}
 
-	public unsafe class JpgDecoder: Decoder
+	public class JpgDecoder: Decoder
 	{
 		private class stbi__huffman
 		{
@@ -122,7 +123,7 @@ namespace StbImageLib.Decoding
 			}
 		}
 
-		private static int stbi__build_huffman(stbi__huffman h, int* count)
+		private static int stbi__build_huffman(stbi__huffman h, int[] count)
 		{
 			int i = 0;
 			int j = 0;
@@ -298,7 +299,7 @@ namespace StbImageLib.Decoding
 			return (int)(k & 0x80000000);
 		}
 
-		private int stbi__jpeg_decode_block(short* data, stbi__huffman hdc, stbi__huffman hac, short[] fac, int b, ushort[] dequant)
+		private int stbi__jpeg_decode_block(short[] data, stbi__huffman hdc, stbi__huffman hac, short[] fac, int b, ushort[] dequant)
 		{
 			int diff = 0;
 			int dc = 0;
@@ -309,7 +310,8 @@ namespace StbImageLib.Decoding
 			t = (int)(stbi__jpeg_huff_decode(hdc));
 			if ((t) < (0))
 				stbi__err("bad huffman code");
-			CRuntime.memset(data, (int)(0), (ulong)(64 * sizeof(short)));
+
+			Array.Clear(data, 0, data.Length);
 			diff = (int)((t) != 0 ? stbi__extend_receive((int)(t)) : 0);
 			dc = (int)(img_comp[b].dc_pred + diff);
 			img_comp[b].dc_pred = (int)(dc);
@@ -359,7 +361,7 @@ namespace StbImageLib.Decoding
 			return (int)(1);
 		}
 
-		private int stbi__jpeg_decode_block_prog_dc(short* data, stbi__huffman hdc, int b)
+		private int stbi__jpeg_decode_block_prog_dc(FakePtr<short> data, stbi__huffman hdc, int b)
 		{
 			int diff = 0;
 			int dc = 0;
@@ -370,7 +372,7 @@ namespace StbImageLib.Decoding
 				stbi__grow_buffer_unsafe();
 			if ((succ_high) == (0))
 			{
-				CRuntime.memset(data, (int)(0), (ulong)(64 * sizeof(short)));
+				data.Clear(64);
 				t = (int)(stbi__jpeg_huff_decode(hdc));
 				diff = (int)((t) != 0 ? stbi__extend_receive((int)(t)) : 0);
 				dc = (int)(img_comp[b].dc_pred + diff);
@@ -386,7 +388,7 @@ namespace StbImageLib.Decoding
 			return (int)(1);
 		}
 
-		private int stbi__jpeg_decode_block_prog_ac(short* data, stbi__huffman hac, short[] fac)
+		private int stbi__jpeg_decode_block_prog_ac(FakePtr<short> data, stbi__huffman hac, short[] fac)
 		{
 			int k = 0;
 			if ((spec_start) == (0))
@@ -456,16 +458,19 @@ namespace StbImageLib.Decoding
 					--eob_run;
 					for (k = (int)(spec_start); k <= spec_end; ++k)
 					{
-						short* p = &data[stbi__jpeg_dezigzag[k]];
-						if (*p != 0)
+						var idx = stbi__jpeg_dezigzag[k];
+						var value = data[idx];
+						if (value != 0)
+						{
 							if ((stbi__jpeg_get_bit()) != 0)
-								if ((*p & bit) == (0))
+								if ((value & bit) == (0))
 								{
-									if ((*p) > (0))
-										*p += (short)(bit);
+									if ((value) > (0))
+										data[idx] += (short)(bit);
 									else
-										*p -= (short)(bit);
+										data[idx] -= (short)(bit);
 								}
+						}
 					}
 				}
 				else
@@ -504,23 +509,24 @@ namespace StbImageLib.Decoding
 						}
 						while (k <= spec_end)
 						{
-							short* p = &data[stbi__jpeg_dezigzag[k++]];
-							if (*p != 0)
+							var idx = stbi__jpeg_dezigzag[k++];
+							var value = data[idx];
+							if (value != 0)
 							{
 								if ((stbi__jpeg_get_bit()) != 0)
-									if ((*p & bit) == (0))
+									if ((value & bit) == (0))
 									{
-										if ((*p) > (0))
-											*p += (short)(bit);
+										if ((value) > (0))
+											data[idx] += (short)(bit);
 										else
-											*p -= (short)(bit);
+											data[idx] -= (short)(bit);
 									}
 							}
 							else
 							{
 								if ((r) == (0))
 								{
-									*p = ((short)(s));
+									data[idx] = ((short)(s));
 									break;
 								}
 								--r;
@@ -547,13 +553,13 @@ namespace StbImageLib.Decoding
 			return (byte)(x);
 		}
 
-		private static void stbi__idct_block(byte* _out_, int out_stride, short* data)
+		private static void stbi__idct_block(FakePtr<byte> _out_, int out_stride, FakePtr<short> data)
 		{
 			int i = 0;
-			int* val = stackalloc int[64];
-			int* v = val;
-			byte* o;
-			short* d = ((short*)data);
+			int[] val = new int[64];
+			FakePtr<int> v = new FakePtr<int>(val);
+			FakePtr<byte> o;
+			FakePtr<short> d = ((FakePtr<short>)data);
 			for (i = (int)(0); (i) < (8); ++i, ++d, ++v)
 			{
 				if ((((((((d[8]) == (0)) && ((d[16]) == (0))) && ((d[24]) == (0))) && ((d[32]) == (0))) && ((d[40]) == (0))) && ((d[48]) == (0))) && ((d[56]) == (0)))
@@ -624,7 +630,7 @@ namespace StbImageLib.Decoding
 					v[32] = (int)((x3 - t0) >> 10);
 				}
 			}
-			for (i = (int)(0), v = val, o = _out_; (i) < (8); ++i, v += 8, o += out_stride)
+			for (i = (int)(0), v = new FakePtr<int>(val), o = _out_; (i) < (8); ++i, v += 8, o += out_stride)
 			{
 				int t0 = 0;
 				int t1 = 0;
@@ -728,7 +734,7 @@ namespace StbImageLib.Decoding
 				{
 					int i = 0;
 					int j = 0;
-					short* data = stackalloc short[64];
+					short[] data = new short[64];
 					int n = (int)(order[0]);
 					int w = (int)((img_comp[n].x + 7) >> 3);
 					int h = (int)((img_comp[n].y + 7) >> 3);
@@ -739,7 +745,9 @@ namespace StbImageLib.Decoding
 							int ha = (int)(img_comp[n].ha);
 							if (stbi__jpeg_decode_block(data, huff_dc[img_comp[n].hd], huff_ac[ha], fast_ac[ha], (int)(n), dequant[img_comp[n].tq]) == 0)
 								return (int)(0);
-							idct_block_kernel(img_comp[n].data + img_comp[n].w2 * j * 8 + i * 8, (int)(img_comp[n].w2), data);
+							idct_block_kernel(new FakePtr<byte>(img_comp[n].data, img_comp[n].w2 * j * 8 + i * 8), 
+								(int)(img_comp[n].w2), 
+								new FakePtr<short>(data));
 							if (--todo <= 0)
 							{
 								if ((code_bits) < (24))
@@ -759,7 +767,7 @@ namespace StbImageLib.Decoding
 					int k = 0;
 					int x = 0;
 					int y = 0;
-					short* data = stackalloc short[64];
+					short[] data = new short[64];
 					for (j = (int)(0); (j) < (img_mcu_y); ++j)
 					{
 						for (i = (int)(0); (i) < (img_mcu_x); ++i)
@@ -776,7 +784,9 @@ namespace StbImageLib.Decoding
 										int ha = (int)(img_comp[n].ha);
 										if (stbi__jpeg_decode_block(data, huff_dc[img_comp[n].hd], huff_ac[ha], fast_ac[ha], (int)(n), dequant[img_comp[n].tq]) == 0)
 											return (int)(0);
-										idct_block_kernel(img_comp[n].data + img_comp[n].w2 * y2 + x2, (int)(img_comp[n].w2), data);
+										idct_block_kernel(new FakePtr<byte>(img_comp[n].data, 
+											img_comp[n].w2 * y2 + x2), (int)(img_comp[n].w2), 
+											new FakePtr<short>(data));
 									}
 								}
 							}
@@ -806,7 +816,7 @@ namespace StbImageLib.Decoding
 					{
 						for (i = (int)(0); (i) < (w); ++i)
 						{
-							short* data = img_comp[n].coeff + 64 * (i + j * img_comp[n].coeff_w);
+							FakePtr<short> data = new FakePtr<short>(img_comp[n].coeff, 64 * (i + j * img_comp[n].coeff_w));
 							if ((spec_start) == (0))
 							{
 								if (stbi__jpeg_decode_block_prog_dc(data, huff_dc[img_comp[n].hd], (int)(n)) == 0)
@@ -850,7 +860,7 @@ namespace StbImageLib.Decoding
 									{
 										int x2 = (int)(i * img_comp[n].h + x);
 										int y2 = (int)(j * img_comp[n].v + y);
-										short* data = img_comp[n].coeff + 64 * (x2 + y2 * img_comp[n].coeff_w);
+										FakePtr<short> data = new FakePtr<short>(img_comp[n].coeff, 64 * (x2 + y2 * img_comp[n].coeff_w));
 										if (stbi__jpeg_decode_block_prog_dc(data, huff_dc[img_comp[n].hd], (int)(n)) == 0)
 											return (int)(0);
 									}
@@ -871,7 +881,7 @@ namespace StbImageLib.Decoding
 			}
 		}
 
-		private static void stbi__jpeg_dequantize(short* data, ushort[] dequant)
+		private static void stbi__jpeg_dequantize(FakePtr<short> data, ushort[] dequant)
 		{
 			int i = 0;
 			for (i = (int)(0); (i) < (64); ++i)
@@ -895,9 +905,11 @@ namespace StbImageLib.Decoding
 					{
 						for (i = (int)(0); (i) < (w); ++i)
 						{
-							short* data = img_comp[n].coeff + 64 * (i + j * img_comp[n].coeff_w);
+							FakePtr<short> data = new FakePtr<short>(img_comp[n].coeff, 64 * (i + j * img_comp[n].coeff_w));
 							stbi__jpeg_dequantize(data, dequant[img_comp[n].tq]);
-							idct_block_kernel(img_comp[n].data + img_comp[n].w2 * j * 8 + i * 8, (int)(img_comp[n].w2), data);
+							idct_block_kernel(new FakePtr<byte>(img_comp[n].data, img_comp[n].w2 * j * 8 + i * 8), 
+								(int)(img_comp[n].w2), 
+								data);
 						}
 					}
 				}
@@ -943,7 +955,7 @@ namespace StbImageLib.Decoding
 					while ((L) > (0))
 					{
 						byte[] v;
-						int* sizes = stackalloc int[16];
+						int[] sizes = new int[16];
 						int i = 0;
 						int n = (int)(0);
 						int q = (int)(stbi__get8());
@@ -993,7 +1005,7 @@ namespace StbImageLib.Decoding
 				L -= (int)(2);
 				if (((m) == (0xE0)) && ((L) >= (5)))
 				{
-					byte* tag = stackalloc byte[5];
+					byte[] tag = new byte[5];
 					tag[0] = (byte)('J');
 					tag[1] = (byte)('F');
 					tag[2] = (byte)('I');
@@ -1012,7 +1024,7 @@ namespace StbImageLib.Decoding
 				}
 				else if (((m) == (0xEE)) && ((L) >= (12)))
 				{
-					byte* tag = stackalloc byte[6];
+					byte[] tag = new byte[6];
 					tag[0] = (byte)('A');
 					tag[1] = (byte)('d');
 					tag[2] = (byte)('o');
@@ -1104,19 +1116,16 @@ namespace StbImageLib.Decoding
 			{
 				if ((img_comp[i].raw_data) != null)
 				{
-					CRuntime.free(img_comp[i].raw_data);
 					img_comp[i].raw_data = (null);
-					img_comp[i].data = (null);
+					img_comp[i].data = FakePtr<byte>.Null;
 				}
 				if ((img_comp[i].raw_coeff) != null)
 				{
-					CRuntime.free(img_comp[i].raw_coeff);
 					img_comp[i].raw_coeff = null;
-					img_comp[i].coeff = null;
+					img_comp[i].coeff = FakePtr<short>.Null;
 				}
 				if ((img_comp[i].linebuf) != null)
 				{
-					CRuntime.free(img_comp[i].linebuf);
 					img_comp[i].linebuf = (null);
 				}
 			}
@@ -1150,7 +1159,7 @@ namespace StbImageLib.Decoding
 			img_n = (int)(c);
 			for (i = (int)(0); (i) < (c); ++i)
 			{
-				img_comp[i].data = (null);
+				img_comp[i].data = FakePtr<byte>.Null;
 				img_comp[i].linebuf = (null);
 			}
 			if (Lf != 8 + 3 * img_n)
@@ -1158,13 +1167,13 @@ namespace StbImageLib.Decoding
 			rgb = (int)(0);
 			for (i = (int)(0); (i) < (img_n); ++i)
 			{
-				byte* rgb = stackalloc byte[3];
+				byte[] rgb = new byte[3];
 				rgb[0] = (byte)('R');
 				rgb[1] = (byte)('G');
 				rgb[2] = (byte)('B');
 				img_comp[i].id = (int)(stbi__get8());
 				if (((img_n) == (3)) && ((img_comp[i].id) == (rgb[i])))
-					++rgb;
+					++this.rgb;
 				q = (int)(stbi__get8());
 				img_comp[i].h = (int)(q >> 4);
 				if ((img_comp[i].h == 0) || ((img_comp[i].h) > (4)))
@@ -1199,17 +1208,17 @@ namespace StbImageLib.Decoding
 				img_comp[i].y = (int)((img_y * img_comp[i].v + v_max - 1) / v_max);
 				img_comp[i].w2 = (int)(img_mcu_x * img_comp[i].h * 8);
 				img_comp[i].h2 = (int)(img_mcu_y * img_comp[i].v * 8);
-				img_comp[i].coeff = null;
+				img_comp[i].coeff = FakePtr<short>.Null;
 				img_comp[i].raw_coeff = null;
 				img_comp[i].linebuf = (null);
-				img_comp[i].raw_data = Memory.stbi__malloc_mad2((int)(img_comp[i].w2), (int)(img_comp[i].h2), (int)(15));
-				img_comp[i].data = (byte*)((((long)img_comp[i].raw_data + 15) & ~15));
+				img_comp[i].raw_data = new byte[img_comp[i].w2 * img_comp[i].h2 + 15];
+				img_comp[i].data = new FakePtr<byte>(img_comp[i].raw_data);
 				if ((progressive) != 0)
 				{
 					img_comp[i].coeff_w = (int)(img_comp[i].w2 / 8);
 					img_comp[i].coeff_h = (int)(img_comp[i].h2 / 8);
-					img_comp[i].raw_coeff = Memory.stbi__malloc_mad3((int)(img_comp[i].w2), (int)(img_comp[i].h2), (int)(sizeof(short)), (int)(15));
-					img_comp[i].coeff = (short*)((((long)img_comp[i].raw_coeff + 15) & ~15));
+					img_comp[i].raw_coeff = new short[img_comp[i].w2 * img_comp[i].h2 + 15];
+					img_comp[i].coeff = new FakePtr<short>(img_comp[i].raw_coeff);
 				}
 			}
 			return (int)(1);
@@ -1303,12 +1312,12 @@ namespace StbImageLib.Decoding
 			return (int)(1);
 		}
 
-		private static byte* resample_row_1(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
+		private static FakePtr<byte> resample_row_1(FakePtr<byte> _out_, FakePtr<byte> in_near, FakePtr<byte> in_far, int w, int hs)
 		{
 			return in_near;
 		}
 
-		private static byte* stbi__resample_row_v_2(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
+		private static FakePtr<byte> stbi__resample_row_v_2(FakePtr<byte> _out_, FakePtr<byte> in_near, FakePtr<byte> in_far, int w, int hs)
 		{
 			int i = 0;
 			for (i = (int)(0); (i) < (w); ++i)
@@ -1318,10 +1327,10 @@ namespace StbImageLib.Decoding
 			return _out_;
 		}
 
-		private static byte* stbi__resample_row_h_2(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
+		private static FakePtr<byte> stbi__resample_row_h_2(FakePtr<byte> _out_, FakePtr<byte> in_near, FakePtr<byte> in_far, int w, int hs)
 		{
 			int i = 0;
-			byte* input = in_near;
+			FakePtr<byte> input = in_near;
 			if ((w) == (1))
 			{
 				_out_[0] = (byte)(_out_[1] = (byte)(input[0]));
@@ -1341,7 +1350,7 @@ namespace StbImageLib.Decoding
 			return _out_;
 		}
 
-		private static byte* stbi__resample_row_hv_2(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
+		private static FakePtr<byte> stbi__resample_row_hv_2(FakePtr<byte> _out_, FakePtr<byte> in_near, FakePtr<byte> in_far, int w, int hs)
 		{
 			int i = 0;
 			int t0 = 0;
@@ -1365,7 +1374,7 @@ namespace StbImageLib.Decoding
 			return _out_;
 		}
 
-		private static byte* stbi__resample_row_generic(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
+		private static FakePtr<byte> stbi__resample_row_generic(FakePtr<byte> _out_, FakePtr<byte> in_near, FakePtr<byte> in_far, int w, int hs)
 		{
 			int i = 0;
 			int j = 0;
@@ -1379,7 +1388,7 @@ namespace StbImageLib.Decoding
 			return _out_;
 		}
 
-		private static void stbi__YCbCr_to_RGB_row(byte* _out_, byte* y, byte* pcb, byte* pcr, int count, int step)
+		private static void stbi__YCbCr_to_RGB_row(FakePtr<byte> _out_, FakePtr<byte> y, FakePtr<byte> pcb, FakePtr<byte> pcr, int count, int step)
 		{
 			int i = 0;
 			for (i = (int)(0); (i) < (count); ++i)
@@ -1443,8 +1452,10 @@ namespace StbImageLib.Decoding
 			return (byte)((t + (t >> 8)) >> 8);
 		}
 
-		private byte[] load_jpeg_image(int* out_x, int* out_y, int* comp, int req_comp)
+		private byte[] load_jpeg_image(out int out_x, out int out_y, out int comp, int req_comp)
 		{
+			out_x = out_y = comp = 0;
+
 			int n = 0;
 			int decode_n = 0;
 			int is_rgb = 0;
@@ -1468,18 +1479,18 @@ namespace StbImageLib.Decoding
 				uint i = 0;
 				uint j = 0;
 				byte[] output;
-				byte** coutput = stackalloc byte*[4];
-				coutput[0] = (null);
-				coutput[1] = (null);
-				coutput[2] = (null);
-				coutput[3] = (null);
+				FakePtr<byte>[] coutput = new FakePtr<byte>[4];
+				coutput[0] = FakePtr<byte>.Null;
+				coutput[1] = FakePtr<byte>.Null;
+				coutput[2] = FakePtr<byte>.Null;
+				coutput[3] = FakePtr<byte>.Null;
 				var res_comp = new stbi__resample[4];
 				for (var kkk = 0; kkk < res_comp.Length; ++kkk)
 					res_comp[kkk] = new stbi__resample();
 				for (k = (int)(0); (k) < (decode_n); ++k)
 				{
 					stbi__resample r = res_comp[k];
-					img_comp[k].linebuf = (byte*)(Memory.stbi__malloc((ulong)(img_x + 3)));
+					img_comp[k].linebuf = new byte[img_x + 3];
 					r.hs = (int)(img_h_max / img_comp[k].h);
 					r.vs = (int)(img_v_max / img_comp[k].v);
 					r.ystep = (int)(r.vs >> 1);
@@ -1499,147 +1510,150 @@ namespace StbImageLib.Decoding
 				}
 
 				output = new byte[n * img_x * img_y];
-				fixed (byte* ptr = &output[0])
+				FakePtr<byte> ptr = new FakePtr<byte>(output);
+				for (j = (uint)(0); (j) < (img_y); ++j)
 				{
-					for (j = (uint)(0); (j) < (img_y); ++j)
+					FakePtr<byte> _out_ = ptr + n * img_x * j;
+					for (k = (int)(0); (k) < (decode_n); ++k)
 					{
-						byte* _out_ = ptr + n * img_x * j;
-						for (k = (int)(0); (k) < (decode_n); ++k)
+						stbi__resample r = res_comp[k];
+						int y_bot = (int)((r.ystep) >= (r.vs >> 1) ? 1 : 0);
+						coutput[k] = r.resample(new FakePtr<byte>(img_comp[k].linebuf), 
+							(y_bot) != 0 ? r.line1 : r.line0, 
+							(y_bot) != 0 ? r.line0 : r.line1, 
+							(int)(r.w_lores), (int)(r.hs));
+						if ((++r.ystep) >= (r.vs))
 						{
-							stbi__resample r = res_comp[k];
-							int y_bot = (int)((r.ystep) >= (r.vs >> 1) ? 1 : 0);
-							coutput[k] = r.resample(img_comp[k].linebuf, (y_bot) != 0 ? r.line1 : r.line0, (y_bot) != 0 ? r.line0 : r.line1, (int)(r.w_lores), (int)(r.hs));
-							if ((++r.ystep) >= (r.vs))
-							{
-								r.ystep = (int)(0);
-								r.line0 = r.line1;
-								if ((++r.ypos) < (img_comp[k].y))
-									r.line1 += img_comp[k].w2;
-							}
+							r.ystep = (int)(0);
+							r.line0 = r.line1;
+							if ((++r.ypos) < (img_comp[k].y))
+								r.line1 += img_comp[k].w2;
 						}
-						if ((n) >= (3))
-						{
-							byte* y = coutput[0];
-							if ((img_n) == (3))
-							{
-								if ((is_rgb) != 0)
-								{
-									for (i = (uint)(0); (i) < (img_x); ++i)
-									{
-										_out_[0] = (byte)(y[i]);
-										_out_[1] = (byte)(coutput[1][i]);
-										_out_[2] = (byte)(coutput[2][i]);
-										_out_[3] = (byte)(255);
-										_out_ += n;
-									}
-								}
-								else
-								{
-									YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
-								}
-							}
-							else if ((img_n) == (4))
-							{
-								if ((app14_color_transform) == (0))
-								{
-									for (i = (uint)(0); (i) < (img_x); ++i)
-									{
-										byte m = (byte)(coutput[3][i]);
-										_out_[0] = (byte)(stbi__blinn_8x8((byte)(coutput[0][i]), (byte)(m)));
-										_out_[1] = (byte)(stbi__blinn_8x8((byte)(coutput[1][i]), (byte)(m)));
-										_out_[2] = (byte)(stbi__blinn_8x8((byte)(coutput[2][i]), (byte)(m)));
-										_out_[3] = (byte)(255);
-										_out_ += n;
-									}
-								}
-								else if ((app14_color_transform) == (2))
-								{
-									YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
-									for (i = (uint)(0); (i) < (img_x); ++i)
-									{
-										byte m = (byte)(coutput[3][i]);
-										_out_[0] = (byte)(stbi__blinn_8x8((byte)(255 - _out_[0]), (byte)(m)));
-										_out_[1] = (byte)(stbi__blinn_8x8((byte)(255 - _out_[1]), (byte)(m)));
-										_out_[2] = (byte)(stbi__blinn_8x8((byte)(255 - _out_[2]), (byte)(m)));
-										_out_ += n;
-									}
-								}
-								else
-								{
-									YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
-								}
-							}
-							else
-								for (i = (uint)(0); (i) < (img_x); ++i)
-								{
-									_out_[0] = (byte)(_out_[1] = (byte)(_out_[2] = (byte)(y[i])));
-									_out_[3] = (byte)(255);
-									_out_ += n;
-								}
-						}
-						else
+					}
+					if ((n) >= (3))
+					{
+						FakePtr<byte> y = coutput[0];
+						if ((img_n) == (3))
 						{
 							if ((is_rgb) != 0)
 							{
-								if ((n) == (1))
-									for (i = (uint)(0); (i) < (img_x); ++i)
-									{
-										*_out_++ = (byte)(Conversion.stbi__compute_y((int)(coutput[0][i]), (int)(coutput[1][i]), (int)(coutput[2][i])));
-									}
-								else
+								for (i = (uint)(0); (i) < (img_x); ++i)
 								{
-									for (i = (uint)(0); (i) < (img_x); ++i, _out_ += 2)
-									{
-										_out_[0] = (byte)(Conversion.stbi__compute_y((int)(coutput[0][i]), (int)(coutput[1][i]), (int)(coutput[2][i])));
-										_out_[1] = (byte)(255);
-									}
+									_out_[0] = (byte)(y[i]);
+									_out_[1] = (byte)(coutput[1][i]);
+									_out_[2] = (byte)(coutput[2][i]);
+									_out_[3] = (byte)(255);
+									_out_ += n;
 								}
 							}
-							else if (((img_n) == (4)) && ((app14_color_transform) == (0)))
+							else
+							{
+								YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
+							}
+						}
+						else if ((img_n) == (4))
+						{
+							if ((app14_color_transform) == (0))
 							{
 								for (i = (uint)(0); (i) < (img_x); ++i)
 								{
 									byte m = (byte)(coutput[3][i]);
-									byte r = (byte)(stbi__blinn_8x8((byte)(coutput[0][i]), (byte)(m)));
-									byte g = (byte)(stbi__blinn_8x8((byte)(coutput[1][i]), (byte)(m)));
-									byte b = (byte)(stbi__blinn_8x8((byte)(coutput[2][i]), (byte)(m)));
-									_out_[0] = (byte)(Conversion.stbi__compute_y((int)(r), (int)(g), (int)(b)));
-									_out_[1] = (byte)(255);
+									_out_[0] = (byte)(stbi__blinn_8x8((byte)(coutput[0][i]), (byte)(m)));
+									_out_[1] = (byte)(stbi__blinn_8x8((byte)(coutput[1][i]), (byte)(m)));
+									_out_[2] = (byte)(stbi__blinn_8x8((byte)(coutput[2][i]), (byte)(m)));
+									_out_[3] = (byte)(255);
 									_out_ += n;
 								}
 							}
-							else if (((img_n) == (4)) && ((app14_color_transform) == (2)))
+							else if ((app14_color_transform) == (2))
 							{
+								YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
 								for (i = (uint)(0); (i) < (img_x); ++i)
 								{
-									_out_[0] = (byte)(stbi__blinn_8x8((byte)(255 - coutput[0][i]), (byte)(coutput[3][i])));
-									_out_[1] = (byte)(255);
+									byte m = (byte)(coutput[3][i]);
+									_out_[0] = (byte)(stbi__blinn_8x8((byte)(255 - _out_[0]), (byte)(m)));
+									_out_[1] = (byte)(stbi__blinn_8x8((byte)(255 - _out_[1]), (byte)(m)));
+									_out_[2] = (byte)(stbi__blinn_8x8((byte)(255 - _out_[2]), (byte)(m)));
 									_out_ += n;
 								}
 							}
 							else
 							{
-								byte* y = coutput[0];
-								if ((n) == (1))
-									for (i = (uint)(0); (i) < (img_x); ++i)
-									{
-										_out_[i] = (byte)(y[i]);
-									}
-								else
-									for (i = (uint)(0); (i) < (img_x); ++i)
-									{
-										*_out_++ = (byte)(y[i]);
-										*_out_++ = (byte)(255);
-									}
+								YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
 							}
+						}
+						else
+							for (i = (uint)(0); (i) < (img_x); ++i)
+							{
+								_out_[0] = (byte)(_out_[1] = (byte)(_out_[2] = (byte)(y[i])));
+								_out_[3] = (byte)(255);
+								_out_ += n;
+							}
+					}
+					else
+					{
+						if ((is_rgb) != 0)
+						{
+							if ((n) == (1))
+								for (i = (uint)(0); (i) < (img_x); ++i)
+								{
+									_out_.Value = (byte)(Conversion.stbi__compute_y((int)(coutput[0][i]), (int)(coutput[1][i]), (int)(coutput[2][i])));
+									_out_++;
+								}
+							else
+							{
+								for (i = (uint)(0); (i) < (img_x); ++i, _out_ += 2)
+								{
+									_out_[0] = (byte)(Conversion.stbi__compute_y((int)(coutput[0][i]), (int)(coutput[1][i]), (int)(coutput[2][i])));
+									_out_[1] = (byte)(255);
+								}
+							}
+						}
+						else if (((img_n) == (4)) && ((app14_color_transform) == (0)))
+						{
+							for (i = (uint)(0); (i) < (img_x); ++i)
+							{
+								byte m = (byte)(coutput[3][i]);
+								byte r = (byte)(stbi__blinn_8x8((byte)(coutput[0][i]), (byte)(m)));
+								byte g = (byte)(stbi__blinn_8x8((byte)(coutput[1][i]), (byte)(m)));
+								byte b = (byte)(stbi__blinn_8x8((byte)(coutput[2][i]), (byte)(m)));
+								_out_[0] = (byte)(Conversion.stbi__compute_y((int)(r), (int)(g), (int)(b)));
+								_out_[1] = (byte)(255);
+								_out_ += n;
+							}
+						}
+						else if (((img_n) == (4)) && ((app14_color_transform) == (2)))
+						{
+							for (i = (uint)(0); (i) < (img_x); ++i)
+							{
+								_out_[0] = (byte)(stbi__blinn_8x8((byte)(255 - coutput[0][i]), (byte)(coutput[3][i])));
+								_out_[1] = (byte)(255);
+								_out_ += n;
+							}
+						}
+						else
+						{
+							FakePtr<byte> y = coutput[0];
+							if ((n) == (1))
+								for (i = (uint)(0); (i) < (img_x); ++i)
+								{
+									_out_[i] = (byte)(y[i]);
+								}
+							else
+								for (i = (uint)(0); (i) < (img_x); ++i)
+								{
+									_out_.Value = (byte)(y[i]);
+									_out_++;
+									_out_.Value = 255;
+									_out_++;
+								}
 						}
 					}
 				}
 				stbi__cleanup_jpeg();
-				*out_x = (int)(img_x);
-				*out_y = (int)(img_y);
-				if ((comp) != null)
-					*comp = (int)((img_n) >= (3) ? 3 : 1);
+				out_x = (int)(img_x);
+				out_y = (int)(img_y);
+				comp = (int)((img_n) >= (3) ? 3 : 1);
 				return output;
 			}
 		}
@@ -1650,7 +1664,7 @@ namespace StbImageLib.Decoding
 
 			int x, y, comp;
 			int req_comp = requiredComponents == null ? 0 : (int)requiredComponents.Value;
-			var result = load_jpeg_image(&x, &y, &comp, (int)(req_comp));
+			var result = load_jpeg_image(out x, out y, out comp, (int)(req_comp));
 
 			return new ImageResult
 			{

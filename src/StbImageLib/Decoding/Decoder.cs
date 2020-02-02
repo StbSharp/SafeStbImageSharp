@@ -4,7 +4,7 @@ using System.IO;
 
 namespace StbImageLib.Decoding
 {
-	public unsafe class Decoder
+	public class Decoder
 	{
 		public const int STBI__SCAN_load = 0;
 		public const int STBI__SCAN_type = 1;

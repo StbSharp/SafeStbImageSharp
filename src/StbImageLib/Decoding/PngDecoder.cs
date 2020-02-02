@@ -24,6 +24,7 @@ namespace StbImageLib.Decoding
 
 		private static byte[] first_row_filter = { STBI__F_none, STBI__F_sub, STBI__F_none, STBI__F_avg_first, STBI__F_paeth_first };
 		private static byte[] stbi__depth_scale_table = { 0, 0xff, 0x55, 0, 0x11, 0, 0, 0, 0x01 };
+		private static byte[] png_sig = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
 		protected int img_out_n = 0;
 
@@ -50,16 +51,6 @@ namespace StbImageLib.Decoding
 
 		private static bool stbi__check_png_header(Stream input)
 		{
-			byte* png_sig = stackalloc byte[8];
-			png_sig[0] = (byte)(137);
-			png_sig[1] = (byte)(80);
-			png_sig[2] = (byte)(78);
-			png_sig[3] = (byte)(71);
-			png_sig[4] = (byte)(13);
-			png_sig[5] = (byte)(10);
-			png_sig[6] = (byte)(26);
-			png_sig[7] = (byte)(10);
-
 			int i = 0;
 			for (i = (int)(0); (i) < (8); ++i)
 			{
