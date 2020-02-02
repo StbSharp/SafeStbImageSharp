@@ -221,5 +221,61 @@
 			CRuntime.free(data);
 			return good;
 		}
+
+		public static byte* stbi__convert_16_to_8(ushort* orig, int w, int h, int channels)
+		{
+			int i = 0;
+			int img_len = (int)(w * h * channels);
+			byte* reduced;
+			reduced = (byte*)(stbi__malloc((ulong)(img_len)));
+			if ((reduced) == (null))
+				return ((byte*)((ulong)((stbi__err("outofmem")) != 0 ? ((byte*)null) : (null))));
+			for (i = (int)(0); (i) < (img_len); ++i)
+			{
+				reduced[i] = ((byte)((orig[i] >> 8) & 0xFF));
+			}
+			CRuntime.free(orig);
+			return reduced;
+		}
+
+		public static ushort* stbi__convert_8_to_16(byte* orig, int w, int h, int channels)
+		{
+			int i = 0;
+			int img_len = (int)(w * h * channels);
+			ushort* enlarged;
+			enlarged = (ushort*)(stbi__malloc((ulong)(img_len * 2)));
+			if ((enlarged) == (null))
+				return (ushort*)((byte*)((ulong)((stbi__err("outofmem")) != 0 ? ((byte*)null) : (null))));
+			for (i = (int)(0); (i) < (img_len); ++i)
+			{
+				enlarged[i] = ((ushort)((orig[i] << 8) + orig[i]));
+			}
+			CRuntime.free(orig);
+			return enlarged;
+		}
+
+		public static void stbi__vertical_flip(void* image, int w, int h, int bytes_per_pixel)
+		{
+			int row = 0;
+			ulong bytes_per_row = (ulong)(w * bytes_per_pixel);
+			byte* temp = stackalloc byte[2048];
+			byte* bytes = (byte*)(image);
+			for (row = (int)(0); (row) < (h >> 1); row++)
+			{
+				byte* row0 = bytes + (ulong)row * bytes_per_row;
+				byte* row1 = bytes + (ulong)(h - row - 1) * bytes_per_row;
+				ulong bytes_left = (ulong)(bytes_per_row);
+				while ((bytes_left) != 0)
+				{
+					ulong bytes_copy = (ulong)(((bytes_left) < (2048)) ? bytes_left : 2048);
+					CRuntime.memcpy(temp, row0, (ulong)(bytes_copy));
+					CRuntime.memcpy(row0, row1, (ulong)(bytes_copy));
+					CRuntime.memcpy(row1, temp, (ulong)(bytes_copy));
+					row0 += bytes_copy;
+					row1 += bytes_copy;
+					bytes_left -= (ulong)(bytes_copy);
+				}
+			}
+		}
 	}
 }

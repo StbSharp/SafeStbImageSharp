@@ -1,8 +1,14 @@
-﻿namespace StbImageLib.Decoding
+﻿using System.IO;
+
+namespace StbImageLib.Decoding
 {
 	public unsafe class TgaDecoder: Decoder
 	{
-		public static int stbi__tga_get_comp(int bits_per_pixel, int is_grey, int* is_rgb16)
+		private TgaDecoder(Stream stream) : base(stream)
+		{
+		}
+
+		private static int stbi__tga_get_comp(int bits_per_pixel, int is_grey, int* is_rgb16)
 		{
 			if ((is_rgb16) != null)
 				*is_rgb16 = (int)(0);
@@ -26,7 +32,7 @@
 
 		}
 
-		public static int stbi__tga_info(stbi__context s, int* x, int* y, int* comp)
+		private static int stbi__tga_info(stbi__context s, int* x, int* y, int* comp)
 		{
 			int tga_w = 0;
 			int tga_h = 0;
@@ -36,15 +42,15 @@
 			int tga_colormap_bpp = 0;
 			int sz = 0;
 			int tga_colormap_type = 0;
-			stbi__get8(s);
-			tga_colormap_type = (int)(stbi__get8(s));
+			stbi__get8();
+			tga_colormap_type = (int)(stbi__get8());
 			if ((tga_colormap_type) > (1))
 			{
 				stbi__rewind(s);
 				return (int)(0);
 			}
 
-			tga_image_type = (int)(stbi__get8(s));
+			tga_image_type = (int)(stbi__get8());
 			if ((tga_colormap_type) == (1))
 			{
 				if ((tga_image_type != 1) && (tga_image_type != 9))
@@ -52,14 +58,14 @@
 					stbi__rewind(s);
 					return (int)(0);
 				}
-				stbi__skip(s, (int)(4));
-				sz = (int)(stbi__get8(s));
+				stbi__skip((int)(4));
+				sz = (int)(stbi__get8());
 				if (((((sz != 8) && (sz != 15)) && (sz != 16)) && (sz != 24)) && (sz != 32))
 				{
 					stbi__rewind(s);
 					return (int)(0);
 				}
-				stbi__skip(s, (int)(4));
+				stbi__skip((int)(4));
 				tga_colormap_bpp = (int)(sz);
 			}
 			else
@@ -69,26 +75,26 @@
 					stbi__rewind(s);
 					return (int)(0);
 				}
-				stbi__skip(s, (int)(9));
+				stbi__skip((int)(9));
 				tga_colormap_bpp = (int)(0);
 			}
 
-			tga_w = (int)(stbi__get16le(s));
+			tga_w = (int)(stbi__get16le());
 			if ((tga_w) < (1))
 			{
 				stbi__rewind(s);
 				return (int)(0);
 			}
 
-			tga_h = (int)(stbi__get16le(s));
+			tga_h = (int)(stbi__get16le());
 			if ((tga_h) < (1))
 			{
 				stbi__rewind(s);
 				return (int)(0);
 			}
 
-			tga_bits_per_pixel = (int)(stbi__get8(s));
-			stbi__get8(s);
+			tga_bits_per_pixel = (int)(stbi__get8());
+			stbi__get8();
 			if (tga_colormap_bpp != 0)
 			{
 				if ((tga_bits_per_pixel != 8) && (tga_bits_per_pixel != 16))
@@ -118,38 +124,38 @@
 			return (int)(1);
 		}
 
-		public static int stbi__tga_test(stbi__context s)
+		private static int stbi__tga_test(stbi__context s)
 		{
 			int res = (int)(0);
 			int sz = 0;
 			int tga_color_type = 0;
-			stbi__get8(s);
-			tga_color_type = (int)(stbi__get8(s));
+			stbi__get8();
+			tga_color_type = (int)(stbi__get8());
 			if ((tga_color_type) > (1))
 				goto errorEnd;
-			sz = (int)(stbi__get8(s));
+			sz = (int)(stbi__get8());
 			if ((tga_color_type) == (1))
 			{
 				if ((sz != 1) && (sz != 9))
 					goto errorEnd;
-				stbi__skip(s, (int)(4));
-				sz = (int)(stbi__get8(s));
+				stbi__skip((int)(4));
+				sz = (int)(stbi__get8());
 				if (((((sz != 8) && (sz != 15)) && (sz != 16)) && (sz != 24)) && (sz != 32))
 					goto errorEnd;
-				stbi__skip(s, (int)(4));
+				stbi__skip((int)(4));
 			}
 			else
 			{
 				if ((((sz != 2) && (sz != 3)) && (sz != 10)) && (sz != 11))
 					goto errorEnd;
-				stbi__skip(s, (int)(9));
+				stbi__skip((int)(9));
 			}
 
-			if ((stbi__get16le(s)) < (1))
+			if ((stbi__get16le()) < (1))
 				goto errorEnd;
-			if ((stbi__get16le(s)) < (1))
+			if ((stbi__get16le()) < (1))
 				goto errorEnd;
-			sz = (int)(stbi__get8(s));
+			sz = (int)(stbi__get8());
 			if ((((tga_color_type) == (1)) && (sz != 8)) && (sz != 16))
 				goto errorEnd;
 			if (((((sz != 8) && (sz != 15)) && (sz != 16)) && (sz != 24)) && (sz != 32))
@@ -161,9 +167,9 @@
 			return (int)(res);
 		}
 
-		public static void stbi__tga_read_rgb16(stbi__context s, byte* _out_)
+		private void stbi__tga_read_rgb16(byte* _out_)
 		{
-			ushort px = (ushort)(stbi__get16le(s));
+			ushort px = (ushort)(stbi__get16le());
 			ushort fiveBitMask = (ushort)(31);
 			int r = (int)((px >> 10) & fiveBitMask);
 			int g = (int)((px >> 5) & fiveBitMask);
@@ -173,23 +179,23 @@
 			_out_[2] = ((byte)((b * 255) / 31));
 		}
 
-		public static void* stbi__tga_load(stbi__context s, int* x, int* y, int* comp, int req_comp, stbi__result_info* ri)
+		private void* stbi__tga_load(int* x, int* y, int* comp, int req_comp, stbi__result_info* ri)
 		{
-			int tga_offset = (int)(stbi__get8(s));
-			int tga_indexed = (int)(stbi__get8(s));
-			int tga_image_type = (int)(stbi__get8(s));
+			int tga_offset = (int)(stbi__get8());
+			int tga_indexed = (int)(stbi__get8());
+			int tga_image_type = (int)(stbi__get8());
 			int tga_is_RLE = (int)(0);
-			int tga_palette_start = (int)(stbi__get16le(s));
-			int tga_palette_len = (int)(stbi__get16le(s));
-			int tga_palette_bits = (int)(stbi__get8(s));
-			int tga_x_origin = (int)(stbi__get16le(s));
-			int tga_y_origin = (int)(stbi__get16le(s));
-			int tga_width = (int)(stbi__get16le(s));
-			int tga_height = (int)(stbi__get16le(s));
-			int tga_bits_per_pixel = (int)(stbi__get8(s));
+			int tga_palette_start = (int)(stbi__get16le());
+			int tga_palette_len = (int)(stbi__get16le());
+			int tga_palette_bits = (int)(stbi__get8());
+			int tga_x_origin = (int)(stbi__get16le());
+			int tga_y_origin = (int)(stbi__get16le());
+			int tga_width = (int)(stbi__get16le());
+			int tga_height = (int)(stbi__get16le());
+			int tga_bits_per_pixel = (int)(stbi__get8());
 			int tga_comp = 0;
 			int tga_rgb16 = (int)(0);
-			int tga_inverted = (int)(stbi__get8(s));
+			int tga_inverted = (int)(stbi__get8());
 			byte* tga_data;
 			byte* tga_palette = (null);
 			int i = 0;
@@ -212,51 +218,44 @@
 			else
 				tga_comp = (int)(stbi__tga_get_comp((int)(tga_bits_per_pixel), (tga_image_type) == (3) ? 1 : 0, &tga_rgb16));
 			if (tga_comp == 0)
-				return ((byte*)((ulong)((stbi__err("bad format")) != 0 ? ((byte*)null) : (null))));
+				stbi__err("bad format");
 			*x = (int)(tga_width);
 			*y = (int)(tga_height);
 			if ((comp) != null)
 				*comp = (int)(tga_comp);
-			if (stbi__mad3sizes_valid((int)(tga_width), (int)(tga_height), (int)(tga_comp), (int)(0)) == 0)
-				return ((byte*)((ulong)((stbi__err("too large")) != 0 ? ((byte*)null) : (null))));
-			tga_data = (byte*)(stbi__malloc_mad3((int)(tga_width), (int)(tga_height), (int)(tga_comp), (int)(0)));
-			if (tga_data == null)
-				return ((byte*)((ulong)((stbi__err("outofmem")) != 0 ? ((byte*)null) : (null))));
-			stbi__skip(s, (int)(tga_offset));
+			if (Utility.stbi__mad3sizes_valid((int)(tga_width), (int)(tga_height), (int)(tga_comp), (int)(0)) == 0)
+				stbi__err("too large");
+			tga_data = (byte*)(Utility.stbi__malloc_mad3((int)(tga_width), (int)(tga_height), (int)(tga_comp), (int)(0)));
+			stbi__skip((int)(tga_offset));
 			if (((tga_indexed == 0) && (tga_is_RLE == 0)) && (tga_rgb16 == 0))
 			{
 				for (i = (int)(0); (i) < (tga_height); ++i)
 				{
 					int row = (int)((tga_inverted) != 0 ? tga_height - i - 1 : i);
 					byte* tga_row = tga_data + row * tga_width * tga_comp;
-					stbi__getn(s, tga_row, (int)(tga_width * tga_comp));
+					stbi__getn(tga_row, (int)(tga_width * tga_comp));
 				}
 			}
 			else
 			{
 				if ((tga_indexed) != 0)
 				{
-					stbi__skip(s, (int)(tga_palette_start));
-					tga_palette = (byte*)(stbi__malloc_mad2((int)(tga_palette_len), (int)(tga_comp), (int)(0)));
-					if (tga_palette == null)
-					{
-						CRuntime.free(tga_data);
-						return ((byte*)((ulong)((stbi__err("outofmem")) != 0 ? ((byte*)null) : (null))));
-					}
+					stbi__skip((int)(tga_palette_start));
+					tga_palette = (byte*)(Utility.stbi__malloc_mad2((int)(tga_palette_len), (int)(tga_comp), (int)(0)));
 					if ((tga_rgb16) != 0)
 					{
 						byte* pal_entry = tga_palette;
 						for (i = (int)(0); (i) < (tga_palette_len); ++i)
 						{
-							stbi__tga_read_rgb16(s, pal_entry);
+							stbi__tga_read_rgb16(pal_entry);
 							pal_entry += tga_comp;
 						}
 					}
-					else if (stbi__getn(s, tga_palette, (int)(tga_palette_len * tga_comp)) == 0)
+					else if (!stbi__getn(tga_palette, (int)(tga_palette_len * tga_comp)))
 					{
 						CRuntime.free(tga_data);
 						CRuntime.free(tga_palette);
-						return ((byte*)((ulong)((stbi__err("bad palette")) != 0 ? ((byte*)null) : (null))));
+						stbi__err("bad palette");
 					}
 				}
 				for (i = (int)(0); (i) < (tga_width * tga_height); ++i)
@@ -265,7 +264,7 @@
 					{
 						if ((RLE_count) == (0))
 						{
-							int RLE_cmd = (int)(stbi__get8(s));
+							int RLE_cmd = (int)(stbi__get8());
 							RLE_count = (int)(1 + (RLE_cmd & 127));
 							RLE_repeating = (int)(RLE_cmd >> 7);
 							read_next_pixel = (int)(1);
@@ -283,7 +282,7 @@
 					{
 						if ((tga_indexed) != 0)
 						{
-							int pal_idx = (int)(((tga_bits_per_pixel) == (8)) ? stbi__get8(s) : stbi__get16le(s));
+							int pal_idx = (int)(((tga_bits_per_pixel) == (8)) ? stbi__get8() : stbi__get16le());
 							if ((pal_idx) >= (tga_palette_len))
 							{
 								pal_idx = (int)(0);
@@ -296,13 +295,13 @@
 						}
 						else if ((tga_rgb16) != 0)
 						{
-							stbi__tga_read_rgb16(s, raw_data);
+							stbi__tga_read_rgb16(raw_data);
 						}
 						else
 						{
 							for (j = (int)(0); (j) < (tga_comp); ++j)
 							{
-								raw_data[j] = (byte)(stbi__get8(s));
+								raw_data[j] = (byte)(stbi__get8());
 							}
 						}
 						read_next_pixel = (int)(0);

@@ -1,29 +1,27 @@
-﻿namespace StbImageLib.Decoding
+﻿using StbImageLib.Utility;
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+
+namespace StbImageLib.Decoding
 {
-	private unsafe class BmpDecoder: Decoder
+	public unsafe class BmpDecoder: Decoder
 	{
-		private static int stbi__bmp_test_raw(stbi__context s)
+		[StructLayout(LayoutKind.Sequential)]
+		public struct stbi__bmp_data
 		{
-			int r = 0;
-			int sz = 0;
-			if (stbi__get8(s) != 'B')
-				return (int)(0);
-			if (stbi__get8(s) != 'M')
-				return (int)(0);
-			stbi__get32le(s);
-			stbi__get16le(s);
-			stbi__get16le(s);
-			stbi__get32le(s);
-			sz = (int)(stbi__get32le(s));
-			r = (int)((((((sz) == (12)) || ((sz) == (40))) || ((sz) == (56))) || ((sz) == (108))) || ((sz) == (124)) ? 1 : 0);
-			return (int)(r);
+			public int bpp;
+			public int offset;
+			public int hsz;
+			public uint mr;
+			public uint mg;
+			public uint mb;
+			public uint ma;
+			public uint all_a;
 		}
 
-		private static int stbi__bmp_test(stbi__context s)
+		private BmpDecoder(Stream stream): base(stream)
 		{
-			int r = (int)(stbi__bmp_test_raw(s));
-			stbi__rewind(s);
-			return (int)(r);
 		}
 
 		private static int stbi__high_bit(uint z)
@@ -106,51 +104,51 @@
 			return (int)((int)(v * (int)mul_table[bits]) >> (int)shift_table[bits]);
 		}
 
-		private static void* stbi__bmp_parse_header(stbi__context s, stbi__bmp_data* info)
+		private void* stbi__bmp_parse_header(stbi__bmp_data* info)
 		{
 			int hsz = 0;
-			if ((stbi__get8(s) != 'B') || (stbi__get8(s) != 'M'))
-				return ((byte*)((ulong)((stbi__err("not BMP")) != 0 ? ((byte*)null) : (null))));
-			stbi__get32le(s);
-			stbi__get16le(s);
-			stbi__get16le(s);
-			info->offset = (int)(stbi__get32le(s));
-			info->hsz = (int)(hsz = (int)(stbi__get32le(s)));
+			if ((stbi__get8() != 'B') || (stbi__get8() != 'M'))
+				stbi__err("not BMP");
+			stbi__get32le();
+			stbi__get16le();
+			stbi__get16le();
+			info->offset = (int)(stbi__get32le());
+			info->hsz = (int)(hsz = (int)(stbi__get32le()));
 			info->mr = (uint)(info->mg = (uint)(info->mb = (uint)(info->ma = (uint)(0))));
 			if (((((hsz != 12) && (hsz != 40)) && (hsz != 56)) && (hsz != 108)) && (hsz != 124))
-				return ((byte*)((ulong)((stbi__err("unknown BMP")) != 0 ? ((byte*)null) : (null))));
+				stbi__err("unknown BMP");
 			if ((hsz) == (12))
 			{
-				s.img_x = (uint)(stbi__get16le(s));
-				s.img_y = (uint)(stbi__get16le(s));
+				img_x = (stbi__get16le());
+				img_y = (stbi__get16le());
 			}
 			else
 			{
-				s.img_x = (uint)(stbi__get32le(s));
-				s.img_y = (uint)(stbi__get32le(s));
+				img_x = (int)(stbi__get32le());
+				img_y = (int)(stbi__get32le());
 			}
 
-			if (stbi__get16le(s) != 1)
-				return ((byte*)((ulong)((stbi__err("bad BMP")) != 0 ? ((byte*)null) : (null))));
-			info->bpp = (int)(stbi__get16le(s));
+			if (stbi__get16le() != 1)
+				stbi__err("bad BMP");
+			info->bpp = (int)(stbi__get16le());
 			if (hsz != 12)
 			{
-				int compress = (int)(stbi__get32le(s));
+				int compress = (int)(stbi__get32le());
 				if (((compress) == (1)) || ((compress) == (2)))
-					return ((byte*)((ulong)((stbi__err("BMP RLE")) != 0 ? ((byte*)null) : (null))));
-				stbi__get32le(s);
-				stbi__get32le(s);
-				stbi__get32le(s);
-				stbi__get32le(s);
-				stbi__get32le(s);
+					stbi__err("BMP RLE");
+				stbi__get32le();
+				stbi__get32le();
+				stbi__get32le();
+				stbi__get32le();
+				stbi__get32le();
 				if (((hsz) == (40)) || ((hsz) == (56)))
 				{
 					if ((hsz) == (56))
 					{
-						stbi__get32le(s);
-						stbi__get32le(s);
-						stbi__get32le(s);
-						stbi__get32le(s);
+						stbi__get32le();
+						stbi__get32le();
+						stbi__get32le();
+						stbi__get32le();
 					}
 					if (((info->bpp) == (16)) || ((info->bpp) == (32)))
 					{
@@ -173,38 +171,38 @@
 						}
 						else if ((compress) == (3))
 						{
-							info->mr = (uint)(stbi__get32le(s));
-							info->mg = (uint)(stbi__get32le(s));
-							info->mb = (uint)(stbi__get32le(s));
+							info->mr = (uint)(stbi__get32le());
+							info->mg = (uint)(stbi__get32le());
+							info->mb = (uint)(stbi__get32le());
 							if (((info->mr) == (info->mg)) && ((info->mg) == (info->mb)))
 							{
-								return ((byte*)((ulong)((stbi__err("bad BMP")) != 0 ? ((byte*)null) : (null))));
+								stbi__err("bad BMP");
 							}
 						}
 						else
-							return ((byte*)((ulong)((stbi__err("bad BMP")) != 0 ? ((byte*)null) : (null))));
+							stbi__err("bad BMP");
 					}
 				}
 				else
 				{
 					int i = 0;
 					if ((hsz != 108) && (hsz != 124))
-						return ((byte*)((ulong)((stbi__err("bad BMP")) != 0 ? ((byte*)null) : (null))));
-					info->mr = (uint)(stbi__get32le(s));
-					info->mg = (uint)(stbi__get32le(s));
-					info->mb = (uint)(stbi__get32le(s));
-					info->ma = (uint)(stbi__get32le(s));
-					stbi__get32le(s);
+						stbi__err("bad BMP");
+					info->mr = (uint)(stbi__get32le());
+					info->mg = (uint)(stbi__get32le());
+					info->mb = (uint)(stbi__get32le());
+					info->ma = (uint)(stbi__get32le());
+					stbi__get32le();
 					for (i = (int)(0); (i) < (12); ++i)
 					{
-						stbi__get32le(s);
+						stbi__get32le();
 					}
 					if ((hsz) == (124))
 					{
-						stbi__get32le(s);
-						stbi__get32le(s);
-						stbi__get32le(s);
-						stbi__get32le(s);
+						stbi__get32le();
+						stbi__get32le();
+						stbi__get32le();
+						stbi__get32le();
 					}
 				}
 			}
@@ -212,7 +210,7 @@
 			return (void*)(1);
 		}
 
-		private static void* stbi__bmp_load(stbi__context s, int* x, int* y, int* comp, int req_comp, stbi__result_info* ri)
+		protected override ImageResult InternalDecode(ColorComponents? requiredComponents)
 		{
 			byte* _out_;
 			uint mr = (uint)(0);
@@ -230,10 +228,10 @@
 			int target = 0;
 			stbi__bmp_data info = new stbi__bmp_data();
 			info.all_a = (uint)(255);
-			if ((stbi__bmp_parse_header(s, &info)) == (null))
+			if ((stbi__bmp_parse_header(&info)) == (null))
 				return (null);
-			flip_vertically = (int)(((int)(s.img_y)) > (0) ? 1 : 0);
-			s.img_y = (uint)(CRuntime.abs((int)(s.img_y)));
+			flip_vertically = (int)(((int)(img_y)) > (0) ? 1 : 0);
+			img_y = Math.Abs((int)(img_y));
 			mr = (uint)(info.mr);
 			mg = (uint)(info.mg);
 			mb = (uint)(info.mb);
@@ -250,53 +248,51 @@
 					psize = (int)((info.offset - 14 - info.hsz) >> 2);
 			}
 
-			s.img_n = (int)((ma) != 0 ? 4 : 3);
-			if (((req_comp) != 0) && ((req_comp) >= (3)))
-				target = (int)(req_comp);
+			img_n = (int)((ma) != 0 ? 4 : 3);
+			if (requiredComponents != null && (int)requiredComponents.Value >= (3))
+				target = (int)requiredComponents.Value;
 			else
-				target = (int)(s.img_n);
-			if (stbi__mad3sizes_valid((int)(target), (int)(s.img_x), (int)(s.img_y), (int)(0)) == 0)
-				return ((byte*)((ulong)((stbi__err("too large")) != 0 ? ((byte*)null) : (null))));
-			_out_ = (byte*)(stbi__malloc_mad3((int)(target), (int)(s.img_x), (int)(s.img_y), (int)(0)));
-			if (_out_ == null)
-				return ((byte*)((ulong)((stbi__err("outofmem")) != 0 ? ((byte*)null) : (null))));
+				target = (int)(img_n);
+			if (Utility.stbi__mad3sizes_valid((int)(target), (int)(img_x), (int)(img_y), (int)(0)) == 0)
+				stbi__err("too large");
+			_out_ = (byte*)(Utility.stbi__malloc_mad3((int)(target), (int)(img_x), (int)(img_y), (int)(0)));
 			if ((info.bpp) < (16))
 			{
 				int z = (int)(0);
 				if (((psize) == (0)) || ((psize) > (256)))
 				{
 					CRuntime.free(_out_);
-					return ((byte*)((ulong)((stbi__err("invalid")) != 0 ? ((byte*)null) : (null))));
+					stbi__err("invalid");
 				}
 				for (i = (int)(0); (i) < (psize); ++i)
 				{
-					pal[i * 4 + 2] = (byte)(stbi__get8(s));
-					pal[i * 4 + 1] = (byte)(stbi__get8(s));
-					pal[i * 4 + 0] = (byte)(stbi__get8(s));
+					pal[i * 4 + 2] = (byte)(stbi__get8());
+					pal[i * 4 + 1] = (byte)(stbi__get8());
+					pal[i * 4 + 0] = (byte)(stbi__get8());
 					if (info.hsz != 12)
-						stbi__get8(s);
+						stbi__get8();
 					pal[i * 4 + 3] = (byte)(255);
 				}
-				stbi__skip(s, (int)(info.offset - 14 - info.hsz - psize * ((info.hsz) == (12) ? 3 : 4)));
+				stbi__skip((int)(info.offset - 14 - info.hsz - psize * ((info.hsz) == (12) ? 3 : 4)));
 				if ((info.bpp) == (1))
-					width = (int)((s.img_x + 7) >> 3);
+					width = (int)((img_x + 7) >> 3);
 				else if ((info.bpp) == (4))
-					width = (int)((s.img_x + 1) >> 1);
+					width = (int)((img_x + 1) >> 1);
 				else if ((info.bpp) == (8))
-					width = (int)(s.img_x);
+					width = (int)(img_x);
 				else
 				{
 					CRuntime.free(_out_);
-					return ((byte*)((ulong)((stbi__err("bad bpp")) != 0 ? ((byte*)null) : (null))));
+					stbi__err("bad bpp");
 				}
 				pad = (int)((-width) & 3);
 				if ((info.bpp) == (1))
 				{
-					for (j = (int)(0); (j) < ((int)(s.img_y)); ++j)
+					for (j = (int)(0); (j) < ((int)(img_y)); ++j)
 					{
 						int bit_offset = (int)(7);
-						int v = (int)(stbi__get8(s));
-						for (i = (int)(0); (i) < ((int)(s.img_x)); ++i)
+						int v = (int)(stbi__get8());
+						for (i = (int)(0); (i) < ((int)(img_x)); ++i)
 						{
 							int color = (int)((v >> bit_offset) & 0x1);
 							_out_[z++] = (byte)(pal[color * 4 + 0]);
@@ -304,24 +300,24 @@
 							_out_[z++] = (byte)(pal[color * 4 + 2]);
 							if ((target) == (4))
 								_out_[z++] = (byte)(255);
-							if ((i + 1) == ((int)(s.img_x)))
+							if ((i + 1) == ((int)(img_x)))
 								break;
 							if ((--bit_offset) < (0))
 							{
 								bit_offset = (int)(7);
-								v = (int)(stbi__get8(s));
+								v = (int)(stbi__get8());
 							}
 						}
-						stbi__skip(s, (int)(pad));
+						stbi__skip((int)(pad));
 					}
 				}
 				else
 				{
-					for (j = (int)(0); (j) < ((int)(s.img_y)); ++j)
+					for (j = (int)(0); (j) < ((int)(img_y)); ++j)
 					{
-						for (i = (int)(0); (i) < ((int)(s.img_x)); i += (int)(2))
+						for (i = (int)(0); (i) < ((int)(img_x)); i += (int)(2))
 						{
-							int v = (int)(stbi__get8(s));
+							int v = (int)(stbi__get8());
 							int v2 = (int)(0);
 							if ((info.bpp) == (4))
 							{
@@ -333,16 +329,16 @@
 							_out_[z++] = (byte)(pal[v * 4 + 2]);
 							if ((target) == (4))
 								_out_[z++] = (byte)(255);
-							if ((i + 1) == ((int)(s.img_x)))
+							if ((i + 1) == ((int)(img_x)))
 								break;
-							v = (int)(((info.bpp) == (8)) ? stbi__get8(s) : v2);
+							v = (int)(((info.bpp) == (8)) ? stbi__get8() : v2);
 							_out_[z++] = (byte)(pal[v * 4 + 0]);
 							_out_[z++] = (byte)(pal[v * 4 + 1]);
 							_out_[z++] = (byte)(pal[v * 4 + 2]);
 							if ((target) == (4))
 								_out_[z++] = (byte)(255);
 						}
-						stbi__skip(s, (int)(pad));
+						stbi__skip((int)(pad));
 					}
 				}
 			}
@@ -358,11 +354,11 @@
 				int acount = (int)(0);
 				int z = (int)(0);
 				int easy = (int)(0);
-				stbi__skip(s, (int)(info.offset - 14 - info.hsz));
+				stbi__skip((int)(info.offset - 14 - info.hsz));
 				if ((info.bpp) == (24))
-					width = (int)(3 * s.img_x);
+					width = (int)(3 * img_x);
 				else if ((info.bpp) == (16))
-					width = (int)(2 * s.img_x);
+					width = (int)(2 * img_x);
 				else
 					width = (int)(0);
 				pad = (int)((-width) & 3);
@@ -380,7 +376,7 @@
 					if (((mr == 0) || (mg == 0)) || (mb == 0))
 					{
 						CRuntime.free(_out_);
-						return ((byte*)((ulong)((stbi__err("bad masks")) != 0 ? ((byte*)null) : (null))));
+						stbi__err("bad masks");
 					}
 					rshift = (int)(stbi__high_bit((uint)(mr)) - 7);
 					rcount = (int)(stbi__bitcount((uint)(mr)));
@@ -391,18 +387,18 @@
 					ashift = (int)(stbi__high_bit((uint)(ma)) - 7);
 					acount = (int)(stbi__bitcount((uint)(ma)));
 				}
-				for (j = (int)(0); (j) < ((int)(s.img_y)); ++j)
+				for (j = (int)(0); (j) < ((int)(img_y)); ++j)
 				{
 					if ((easy) != 0)
 					{
-						for (i = (int)(0); (i) < ((int)(s.img_x)); ++i)
+						for (i = (int)(0); (i) < ((int)(img_x)); ++i)
 						{
 							byte a = 0;
-							_out_[z + 2] = (byte)(stbi__get8(s));
-							_out_[z + 1] = (byte)(stbi__get8(s));
-							_out_[z + 0] = (byte)(stbi__get8(s));
+							_out_[z + 2] = (byte)(stbi__get8());
+							_out_[z + 1] = (byte)(stbi__get8());
+							_out_[z + 0] = (byte)(stbi__get8());
 							z += (int)(3);
-							a = (byte)((easy) == (2) ? stbi__get8(s) : 255);
+							a = (byte)((easy) == (2) ? stbi__get8() : 255);
 							all_a |= (uint)(a);
 							if ((target) == (4))
 								_out_[z++] = (byte)(a);
@@ -411,9 +407,9 @@
 					else
 					{
 						int bpp = (int)(info.bpp);
-						for (i = (int)(0); (i) < ((int)(s.img_x)); ++i)
+						for (i = (int)(0); (i) < ((int)(img_x)); ++i)
 						{
-							uint v = (uint)((bpp) == (16) ? (uint)(stbi__get16le(s)) : stbi__get32le(s));
+							uint v = (uint)((bpp) == (16) ? (uint)(stbi__get16le()) : stbi__get32le());
 							uint a = 0;
 							_out_[z++] = ((byte)((stbi__shiftsigned((uint)(v & mr), (int)(rshift), (int)(rcount))) & 255));
 							_out_[z++] = ((byte)((stbi__shiftsigned((uint)(v & mg), (int)(gshift), (int)(gcount))) & 255));
@@ -424,23 +420,23 @@
 								_out_[z++] = ((byte)((a) & 255));
 						}
 					}
-					stbi__skip(s, (int)(pad));
+					stbi__skip((int)(pad));
 				}
 			}
 
 			if (((target) == (4)) && ((all_a) == (0)))
-				for (i = (int)(4 * s.img_x * s.img_y - 1); (i) >= (0); i -= (int)(4))
+				for (i = (int)(4 * img_x * img_y - 1); (i) >= (0); i -= (int)(4))
 				{
 					_out_[i] = (byte)(255);
 				}
 			if ((flip_vertically) != 0)
 			{
 				byte t = 0;
-				for (j = (int)(0); (j) < ((int)(s.img_y) >> 1); ++j)
+				for (j = (int)(0); (j) < ((int)(img_y) >> 1); ++j)
 				{
-					byte* p1 = _out_ + j * s.img_x * target;
-					byte* p2 = _out_ + (s.img_y - 1 - j) * s.img_x * target;
-					for (i = (int)(0); (i) < ((int)(s.img_x) * target); ++i)
+					byte* p1 = _out_ + j * img_x * target;
+					byte* p2 = _out_ + (img_y - 1 - j) * img_x * target;
+					for (i = (int)(0); (i) < ((int)(img_x) * target); ++i)
 					{
 						t = (byte)(p1[i]);
 						p1[i] = (byte)(p2[i]);
@@ -449,19 +445,71 @@
 				}
 			}
 
-			if (((req_comp) != 0) && (req_comp != target))
+			if (requiredComponents != null && (int)requiredComponents.Value != target)
 			{
-				_out_ = stbi__convert_format(_out_, (int)(target), (int)(req_comp), (uint)(s.img_x), (uint)(s.img_y));
-				if ((_out_) == (null))
-					return _out_;
+				_out_ = Conversion.stbi__convert_format(_out_, (int)(target), (int)(requiredComponents.Value), (uint)(img_x), (uint)(img_y));
 			}
 
-			*x = (int)(s.img_x);
-			*y = (int)(s.img_y);
-			if ((comp) != null)
-				*comp = (int)(s.img_n);
-			return _out_;
+			return new ImageResult
+			{
+				Width = (int)img_x,
+				Height = (int)img_y,
+				ColorComponents = requiredComponents != null ? requiredComponents.Value : (ColorComponents)img_n,
+				BitsPerChannel = 8,
+				Data = _out_
+			};
 		}
 
+		private static bool IsBmpInternal(Stream stream)
+		{
+			int sz = 0;
+			if (stream.ReadByte() != 'B')
+				return false;
+			if (stream.ReadByte() != 'M')
+				return false;
+
+			stream.stbi__get32le();
+			stream.stbi__get16le();
+			stream.stbi__get16le();
+			stream.stbi__get32le();
+			sz = (int)(stream.stbi__get32le());
+			bool r = ((sz) == (12)) || ((sz) == (40)) || ((sz) == (56)) || ((sz) == (108)) || ((sz) == (124));
+			return r;
+		}
+
+		public static bool IsBmp(Stream stream)
+		{
+			var r = IsBmpInternal(stream);
+			stream.Rewind();
+			return r;
+		}
+
+		public static ImageInfo? Info(Stream stream)
+		{
+			void* p;
+			stbi__bmp_data info = new stbi__bmp_data
+			{
+				all_a = (uint)(255)
+			};
+
+			var decoder = new BmpDecoder(stream);
+			p = decoder.stbi__bmp_parse_header(&info);
+			stream.Rewind();
+			if ((p) == (null))
+				return null;
+
+			return new ImageInfo
+			{
+				Width = (int)decoder.img_x,
+				Height = (int)decoder.img_y,
+				ColorComponents = info.ma != 0 ? ColorComponents.RedGreenBlueAlpha : ColorComponents.RedGreenBlue
+			};
+		}
+
+		public static ImageResult Decode(Stream stream, ColorComponents? requiredComponents = null)
+		{
+			var decoder = new BmpDecoder(stream);
+			return decoder.InternalDecode(requiredComponents);
+		}
 	}
 }

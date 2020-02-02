@@ -65,5 +65,10 @@
 		{
 			return (int)(stbi__bitreverse16((int)(v)) >> (16 - bits));
 		}
+
+		public static int ToReqComp(this ColorComponents? requiredComponents)
+		{
+			return requiredComponents != null ? (int)requiredComponents.Value : 0;
+		}
 	}
 }

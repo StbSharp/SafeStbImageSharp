@@ -1,4 +1,6 @@
-﻿using System.Runtime.InteropServices;
+﻿using StbImageLib.Utility;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace StbImageLib.Decoding
 {
@@ -94,7 +96,7 @@ namespace StbImageLib.Decoding
 		private YCbCr_to_RGB_kernel YCbCr_to_RGB_kernel;
 		private Resampler resample_row_hv_2_kernel;
 
-		private JpgDecoder()
+		private JpgDecoder(Stream stream): base(stream)
 		{
 			for (var i = 0; i < 4; ++i)
 			{
@@ -1136,10 +1138,10 @@ namespace StbImageLib.Decoding
 			p = (int)(stbi__get8());
 			if (p != 8)
 				stbi__err("only 8-bit");
-			img_y = (uint)(stbi__get16be());
+			img_y = (stbi__get16be());
 			if ((img_y) == (0))
 				stbi__err("no header height");
-			img_x = (uint)(stbi__get16be());
+			img_x = (stbi__get16be());
 			if ((img_x) == (0))
 				stbi__err("0 width");
 			c = (int)(stbi__get8());
@@ -1213,7 +1215,7 @@ namespace StbImageLib.Decoding
 			return (int)(1);
 		}
 
-		private int stbi__decode_jpeg_header(int scan)
+		private bool stbi__decode_jpeg_header(int scan)
 		{
 			int m = 0;
 			jfif = (int)(0);
@@ -1223,12 +1225,12 @@ namespace StbImageLib.Decoding
 			if (!((m) == (0xd8)))
 				stbi__err("no SOI");
 			if ((scan) == (STBI__SCAN_type))
-				return (int)(1);
+				return true;
 			m = (int)(stbi__get_marker());
 			while (!((((m) == (0xc0)) || ((m) == (0xc1))) || ((m) == (0xc2))))
 			{
 				if (stbi__process_marker((int)(m)) == 0)
-					return (int)(0);
+					return false;
 				m = (int)(stbi__get_marker());
 				while ((m) == (0xff))
 				{
@@ -1239,8 +1241,8 @@ namespace StbImageLib.Decoding
 			}
 			progressive = (int)((m) == (0xc2) ? 1 : 0);
 			if (stbi__process_frame_header((int)(scan)) == 0)
-				return (int)(0);
-			return (int)(1);
+				return false;
+			return true;
 		}
 
 		private int stbi__decode_jpeg_image()
@@ -1252,7 +1254,7 @@ namespace StbImageLib.Decoding
 				img_comp[m].raw_coeff = (null);
 			}
 			restart_interval = (int)(0);
-			if (stbi__decode_jpeg_header((int)(STBI__SCAN_load)) == 0)
+			if (!stbi__decode_jpeg_header((int)(STBI__SCAN_load)))
 				return (int)(0);
 			m = (int)(stbi__get_marker());
 			while (!((m) == (0xd9)))
@@ -1473,12 +1475,7 @@ namespace StbImageLib.Decoding
 				for (k = (int)(0); (k) < (decode_n); ++k)
 				{
 					stbi__resample r = res_comp[k];
-					img_comp[k].linebuf = (byte*)(stbi__malloc((ulong)(img_x + 3)));
-					if (img_comp[k].linebuf == null)
-					{
-						stbi__cleanup_jpeg();
-						return ((byte*)((ulong)((stbi__err("outofmem")) != 0 ? ((byte*)null) : (null))));
-					}
+					img_comp[k].linebuf = (byte*)(Utility.stbi__malloc((ulong)(img_x + 3)));
 					r.hs = (int)(img_h_max / img_comp[k].h);
 					r.vs = (int)(img_v_max / img_comp[k].v);
 					r.ystep = (int)(r.vs >> 1);
@@ -1492,16 +1489,11 @@ namespace StbImageLib.Decoding
 					else if (((r.hs) == (2)) && ((r.vs) == (1)))
 						r.resample = stbi__resample_row_h_2;
 					else if (((r.hs) == (2)) && ((r.vs) == (2)))
-						r.resample = z.resample_row_hv_2_kernel;
+						r.resample = resample_row_hv_2_kernel;
 					else
 						r.resample = stbi__resample_row_generic;
 				}
 				output = (byte*)(Utility.stbi__malloc_mad3((int)(n), (int)(img_x), (int)(img_y), (int)(1)));
-				if (output == null)
-				{
-					stbi__cleanup_jpeg();
-					return ((byte*)((ulong)((stbi__err("outofmem")) != 0 ? ((byte*)null) : (null))));
-				}
 				for (j = (uint)(0); (j) < (img_y); ++j)
 				{
 					byte* _out_ = output + n * img_x * j;
@@ -1536,7 +1528,7 @@ namespace StbImageLib.Decoding
 							}
 							else
 							{
-								z.YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
+								YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
 							}
 						}
 						else if ((img_n) == (4))
@@ -1555,7 +1547,7 @@ namespace StbImageLib.Decoding
 							}
 							else if ((app14_color_transform) == (2))
 							{
-								z.YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
+								YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
 								for (i = (uint)(0); (i) < (img_x); ++i)
 								{
 									byte m = (byte)(coutput[3][i]);
@@ -1567,7 +1559,7 @@ namespace StbImageLib.Decoding
 							}
 							else
 							{
-								z.YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
+								YCbCr_to_RGB_kernel(_out_, y, coutput[1], coutput[2], (int)(img_x), (int)(n));
 							}
 						}
 						else
@@ -1585,13 +1577,13 @@ namespace StbImageLib.Decoding
 							if ((n) == (1))
 								for (i = (uint)(0); (i) < (img_x); ++i)
 								{
-									*_out_++ = (byte)(stbi__compute_y((int)(coutput[0][i]), (int)(coutput[1][i]), (int)(coutput[2][i])));
+									*_out_++ = (byte)(Conversion.stbi__compute_y((int)(coutput[0][i]), (int)(coutput[1][i]), (int)(coutput[2][i])));
 								}
 							else
 							{
 								for (i = (uint)(0); (i) < (img_x); ++i, _out_ += 2)
 								{
-									_out_[0] = (byte)(stbi__compute_y((int)(coutput[0][i]), (int)(coutput[1][i]), (int)(coutput[2][i])));
+									_out_[0] = (byte)(Conversion.stbi__compute_y((int)(coutput[0][i]), (int)(coutput[1][i]), (int)(coutput[2][i])));
 									_out_[1] = (byte)(255);
 								}
 							}
@@ -1604,7 +1596,7 @@ namespace StbImageLib.Decoding
 								byte r = (byte)(stbi__blinn_8x8((byte)(coutput[0][i]), (byte)(m)));
 								byte g = (byte)(stbi__blinn_8x8((byte)(coutput[1][i]), (byte)(m)));
 								byte b = (byte)(stbi__blinn_8x8((byte)(coutput[2][i]), (byte)(m)));
-								_out_[0] = (byte)(stbi__compute_y((int)(r), (int)(g), (int)(b)));
+								_out_[0] = (byte)(Conversion.stbi__compute_y((int)(r), (int)(g), (int)(b)));
 								_out_[1] = (byte)(255);
 								_out_ += n;
 							}
@@ -1642,57 +1634,59 @@ namespace StbImageLib.Decoding
 					*comp = (int)((img_n) >= (3) ? 3 : 1);
 				return output;
 			}
-
 		}
 
-		private static void* stbi__jpeg_load(stbi__context s, int* x, int* y, int* comp, int req_comp, stbi__result_info* ri)
+		protected override ImageResult InternalDecode(ColorComponents? requiredComponents)
 		{
-			byte* result;
-			stbi__jpeg j = new stbi__jpeg();
-			 = s;
-			stbi__setup_jpeg(j);
-			result = load_jpeg_image(j, x, y, comp, (int)(req_comp));
+			stbi__setup_jpeg();
 
-			return result;
-		}
+			int x, y, comp;
+			int req_comp = requiredComponents == null ? 0 : (int)requiredComponents.Value;
+			var result = load_jpeg_image(&x, &y, &comp, (int)(req_comp));
 
-		private static int stbi__jpeg_test(stbi__context s)
-		{
-			int r = 0;
-			stbi__jpeg j = new stbi__jpeg();
-			 = s;
-			stbi__setup_jpeg(j);
-			r = (int)(stbi__decode_jpeg_header((int)(STBI__SCAN_type)));
-			stbi__rewind(s);
-
-			return (int)(r);
-		}
-
-		private static int stbi__jpeg_info_raw(stbi__jpeg j, int* x, int* y, int* comp)
-		{
-			if (stbi__decode_jpeg_header((int)(STBI__SCAN_header)) == 0)
+			return new ImageResult
 			{
-				stbi__rewind();
-				return (int)(0);
+				Width = x,
+				Height = y,
+				ColorComponents = requiredComponents != null ? requiredComponents.Value : (ColorComponents)comp,
+				BitsPerChannel = 8,
+				Data = result
+			};
+		}
+
+		public static bool Test(Stream stream)
+		{
+			var decoder = new JpgDecoder(stream);
+			decoder.stbi__setup_jpeg();
+			var r = decoder.stbi__decode_jpeg_header((int)(STBI__SCAN_type));
+			stream.Rewind();
+
+			return r;
+		}
+
+		public static ImageInfo? Info(Stream stream)
+		{
+			var decoder = new JpgDecoder(stream);
+
+			var r = decoder.stbi__decode_jpeg_header((int)(STBI__SCAN_header));
+			stream.Rewind();
+			if (!r)
+			{
+				return null;
 			}
 
-			if ((x) != null)
-				*x = (int)(img_x);
-			if ((y) != null)
-				*y = (int)(img_y);
-			if ((comp) != null)
-				*comp = (int)((img_n) >= (3) ? 3 : 1);
-			return (int)(1);
+			return new ImageInfo
+			{
+				Width = (int)decoder.img_x,
+				Height = (int)decoder.img_y,
+				ColorComponents = decoder.img_n >= 3 ? ColorComponents.RedGreenBlue: ColorComponents.Grey
+			};
 		}
 
-		private static int stbi__jpeg_info(stbi__context s, int* x, int* y, int* comp)
+		public static ImageResult Decode(Stream stream, ColorComponents? requiredComponents = null)
 		{
-			int result = 0;
-			stbi__jpeg j = new stbi__jpeg();
-			 = s;
-			result = (int)(stbi__jpeg_info_raw(j, x, y, comp));
-
-			return (int)(result);
+			var decoder = new JpgDecoder(stream);
+			return decoder.InternalDecode(requiredComponents);
 		}
 	}
 }

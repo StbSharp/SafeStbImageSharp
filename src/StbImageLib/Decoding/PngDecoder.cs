@@ -1,18 +1,19 @@
-﻿using System;
+﻿using StbImageLib.Utility;
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
 namespace StbImageLib.Decoding
 {
-	[StructLayout(LayoutKind.Sequential)]
-	public struct stbi__pngchunk
-	{
-		public uint length;
-		public uint type;
-	}
-
 	public unsafe class PngDecoder: Decoder
 	{
+		[StructLayout(LayoutKind.Sequential)]
+		public struct stbi__pngchunk
+		{
+			public uint length;
+			public uint type;
+		}
+
 		private const int STBI__F_none = 0;
 		private const int STBI__F_sub = 1;
 		private const int STBI__F_up = 2;
@@ -32,6 +33,10 @@ namespace StbImageLib.Decoding
 		public byte* expanded;
 		public byte* _out_;
 		public int depth = 0;
+
+		private PngDecoder(Stream stream): base(stream)
+		{
+		}
 
 		private stbi__pngchunk stbi__get_chunk_header()
 		{
@@ -635,7 +640,7 @@ namespace StbImageLib.Decoding
 			expanded = (null);
 			idata = (null);
 			_out_ = (null);
-			if (stbi__check_png_header() == 0)
+			if (!stbi__check_png_header(Stream))
 				return (int)(0);
 			if ((scan) == (STBI__SCAN_type))
 				return (int)(1);
@@ -657,10 +662,10 @@ namespace StbImageLib.Decoding
 						first = (int)(0);
 						if (c.length != 13)
 							stbi__err("bad IHDR len");
-						img_x = (uint)(stbi__get32be());
+						img_x = (int)(stbi__get32be());
 						if ((img_x) > (1 << 24))
 							stbi__err("too large");
-						img_y = (uint)(stbi__get32be());
+						img_y = (int)(stbi__get32be());
 						if ((img_y) > (1 << 24))
 							stbi__err("too large");
 						depth = (int)(stbi__get8());
@@ -868,73 +873,79 @@ namespace StbImageLib.Decoding
 			}
 		}
 
-		private static void* stbi__do_png(stbi__png p, int* x, int* y, int* n, int req_comp, stbi__result_info* ri)
+		protected override ImageResult InternalDecode(ColorComponents? requiredComponents)
 		{
-			void* result = (null);
+			var req_comp = requiredComponents.ToReqComp();
 			if (((req_comp) < (0)) || ((req_comp) > (4)))
-				return ((byte*)((ulong)((stbi__err("bad req_comp")) != 0 ? ((byte*)null) : (null))));
-			if ((stbi__parse_png_file(p, (int)(STBI__SCAN_load), (int)(req_comp))) != 0)
+				stbi__err("bad req_comp");
+
+			try
 			{
-				if ((p.depth) < (8))
-					ri->bits_per_channel = (int)(8);
-				else
-					ri->bits_per_channel = (int)(p.depth);
-				result = p._out_;
-				p._out_ = (null);
-				if (((req_comp) != 0) && (req_comp != p.img_out_n))
+				if ((stbi__parse_png_file((int)(STBI__SCAN_load), (int)(req_comp))) == 0)
 				{
-					if ((ri->bits_per_channel) == (8))
-						result = stbi__convert_format((byte*)(result), (int)(p.img_out_n), (int)(req_comp), (uint)(p.img_x), (uint)(p.img_y));
-					else
-						result = stbi__convert_format16((ushort*)(result), (int)(p.img_out_n), (int)(req_comp), (uint)(p.img_x), (uint)(p.img_y));
-					p.img_out_n = (int)(req_comp);
-					if ((result) == (null))
-						return result;
+					stbi__err("could not parse png");
 				}
-				*x = (int)(p.img_x);
-				*y = (int)(p.img_y);
-				if ((n) != null)
-					*n = (int)(p.img_n);
+
+				int bits_per_channel = 8;
+				if ((depth) < (8))
+					bits_per_channel = (int)(8);
+				else
+					bits_per_channel = (int)(depth);
+				var result = _out_;
+				_out_ = (null);
+				if (((req_comp) != 0) && (req_comp != img_out_n))
+				{
+					if ((bits_per_channel) == (8))
+						result = Conversion.stbi__convert_format((byte*)(result), (int)(img_out_n), (int)(req_comp), (uint)(img_x), (uint)(img_y));
+					else
+						result = (byte *)Conversion.stbi__convert_format16((ushort*)(result), (int)(img_out_n), (int)(req_comp), (uint)(img_x), (uint)(img_y));
+					img_out_n = (int)(req_comp);
+				}
+
+				return new ImageResult
+				{
+					Width = img_x,
+					Height = img_y,
+					ColorComponents = requiredComponents != null ? requiredComponents.Value : (ColorComponents)img_n,
+					BitsPerChannel = bits_per_channel,
+					Data = result
+				};
+
 			}
-
-			CRuntime.free(p._out_);
-			p._out_ = (null);
-			CRuntime.free(p.expanded);
-			p.expanded = (null);
-			CRuntime.free(p.idata);
-			p.idata = (null);
-			return result;
+			finally
+			{
+				CRuntime.free(_out_);
+				_out_ = (null);
+				CRuntime.free(expanded);
+				expanded = (null);
+				CRuntime.free(idata);
+				idata = (null);
+			}
 		}
 
-		private static void* stbi__png_load(stbi__context s, int* x, int* y, int* comp, int req_comp, stbi__result_info* ri)
+		public static bool Test(Stream stream)
 		{
-			stbi__png p = new stbi__png();
-			p.s = s;
-			return stbi__do_png(p, x, y, comp, (int)(req_comp), ri);
+			var r = stbi__check_png_header(stream);
+			stream.Rewind();
+
+			return r;
 		}
 
-		private static int stbi__png_test(stbi__context s)
+		public static ImageInfo? Info(Stream stream)
 		{
-			int r = 0;
-			r = (int)(stbi__check_png_header());
-			stbi__rewind(s);
-			return (int)(r);
-		}
-
-		private static int stbi__png_info_raw(stbi__png p, int* x, int* y, int* comp)
-		{
-			if (stbi__parse_png_file(p, (int)(STBI__SCAN_header), (int)(0)) == 0)
+			var decoder = 
+			if (stbi__parse_png_file((int)(STBI__SCAN_header), (int)(0)) == 0)
 			{
 				stbi__rewind(p.s);
 				return (int)(0);
 			}
 
 			if ((x) != null)
-				*x = (int)(p.img_x);
+				*x = (int)(img_x);
 			if ((y) != null)
-				*y = (int)(p.img_y);
+				*y = (int)(img_y);
 			if ((comp) != null)
-				*comp = (int)(p.img_n);
+				*comp = (int)(img_n);
 			return (int)(1);
 		}
 
@@ -951,7 +962,7 @@ namespace StbImageLib.Decoding
 			p.s = s;
 			if (stbi__png_info_raw(p, (null), (null), (null)) == 0)
 				return (int)(0);
-			if (p.depth != 16)
+			if (depth != 16)
 			{
 				stbi__rewind(p.s);
 				return (int)(0);
