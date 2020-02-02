@@ -1,5 +1,4 @@
 # StbImageLib
-StbImageLib is the image library based on refactored versions of StbImageSharp, StbImageWriteSharp and StbImageResizeSharp.
 
 Refactoring goals:
 1. Replace unsafe code with safe.
