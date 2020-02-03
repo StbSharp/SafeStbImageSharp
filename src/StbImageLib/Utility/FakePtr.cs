@@ -2,7 +2,7 @@
 
 namespace StbImageLib.Utility
 {
-	internal struct FakePtr<T> where T: new()
+	public struct FakePtr<T> where T: new()
 	{
 		public static FakePtr<T> Null = new FakePtr<T>(null);
 
@@ -85,6 +85,25 @@ namespace StbImageLib.Utility
 			Array.Clear(_array, Offset, count);
 		}
 
+		public T GetAndIncrease()
+		{
+			var result = _array[Offset];
+			++Offset;
+
+			return result;
+		}
+
+		public void SetAndIncrease(T value)
+		{
+			_array[Offset] = value;
+			++Offset;
+		}
+
+		public void Set(T value)
+		{
+			_array[Offset] = value;
+		}
+
 		public static FakePtr<T> operator +(FakePtr<T> p, int offset)
 		{
 			return new FakePtr<T>(p._array) { Offset = p.Offset + offset };
@@ -143,6 +162,22 @@ namespace StbImageLib.Utility
 		}
 
 		public static void memcpy(FakePtr<T> a, FakePtr<T> b, int count)
+		{
+			for (long i = 0; i < count; ++i)
+			{
+				a[i] = b[i];
+			}
+		}
+
+		public static void memcpy(T[] a, FakePtr<T> b, int count)
+		{
+			for (long i = 0; i < count; ++i)
+			{
+				a[i] = b[i];
+			}
+		}
+
+		public static void memcpy(FakePtr<T> a, T[] b, int count)
 		{
 			for (long i = 0; i < count; ++i)
 			{

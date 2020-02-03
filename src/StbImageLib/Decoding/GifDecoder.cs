@@ -232,8 +232,6 @@ namespace StbImageLib.Decoding
 			{
 				if (stbi__gif_header(out comp, (int)(0)) == 0)
 					return null;
-				if (Memory.stbi__mad3sizes_valid((int)(4), (int)(w), (int)(h), (int)(0)) == 0)
-					stbi__err("too large");
 				pcount = (int)(w * h);
 				_out_ = new byte[4 * pcount];
 				Array.Clear(_out_, 0, _out_.Length);

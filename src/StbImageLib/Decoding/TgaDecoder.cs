@@ -3,16 +3,15 @@ using System.IO;
 
 namespace StbImageLib.Decoding
 {
-	public unsafe class TgaDecoder : Decoder
+	public class TgaDecoder : Decoder
 	{
 		private TgaDecoder(Stream stream) : base(stream)
 		{
 		}
 
-		private static int stbi__tga_get_comp(int bits_per_pixel, int is_grey, int* is_rgb16)
+		private static int stbi__tga_get_comp(int bits_per_pixel, int is_grey, out int is_rgb16)
 		{
-			if ((is_rgb16) != null)
-				*is_rgb16 = (int)(0);
+			is_rgb16 = 0;
 			switch (bits_per_pixel)
 			{
 				case 8:
@@ -21,8 +20,7 @@ namespace StbImageLib.Decoding
 				case 16:
 					if (((bits_per_pixel) == (16)) && ((is_grey) != 0))
 						return (int)(2);
-					if ((is_rgb16) != null)
-						*is_rgb16 = (int)(1);
+					is_rgb16 = (int)(1);
 					return (int)(3);
 				case 24:
 				case 32:
@@ -32,7 +30,7 @@ namespace StbImageLib.Decoding
 			}
 		}
 
-		private void stbi__tga_read_rgb16(byte* _out_)
+		private void stbi__tga_read_rgb16(FakePtr<byte> _out_)
 		{
 			ushort px = (ushort)(stbi__get16le());
 			ushort fiveBitMask = (ushort)(31);
@@ -65,7 +63,7 @@ namespace StbImageLib.Decoding
 			byte[] tga_palette = (null);
 			int i = 0;
 			int j = 0;
-			byte* raw_data = stackalloc byte[4];
+			byte[] raw_data = new byte[4];
 			raw_data[0] = (byte)(0);
 
 			int RLE_count = (int)(0);
@@ -79,14 +77,12 @@ namespace StbImageLib.Decoding
 
 			tga_inverted = (int)(1 - ((tga_inverted >> 5) & 1));
 			if ((tga_indexed) != 0)
-				tga_comp = (int)(stbi__tga_get_comp((int)(tga_palette_bits), (int)(0), &tga_rgb16));
+				tga_comp = (int)(stbi__tga_get_comp((int)(tga_palette_bits), (int)(0), out tga_rgb16));
 			else
-				tga_comp = (int)(stbi__tga_get_comp((int)(tga_bits_per_pixel), (tga_image_type) == (3) ? 1 : 0, &tga_rgb16));
+				tga_comp = (int)(stbi__tga_get_comp((int)(tga_bits_per_pixel), (tga_image_type) == (3) ? 1 : 0, out tga_rgb16));
 			if (tga_comp == 0)
 				stbi__err("bad format");
 
-			if (Memory.stbi__mad3sizes_valid((int)(tga_width), (int)(tga_height), (int)(tga_comp), (int)(0)) == 0)
-				stbi__err("too large");
 			tga_data = new byte[tga_width * tga_height * tga_comp];
 			stbi__skip((int)(tga_offset));
 			if (((tga_indexed == 0) && (tga_is_RLE == 0)) && (tga_rgb16 == 0))
@@ -105,14 +101,11 @@ namespace StbImageLib.Decoding
 					tga_palette = new byte[tga_palette_len * tga_comp];
 					if ((tga_rgb16) != 0)
 					{
-						fixed (byte* pal_entry2 = &tga_palette[0])
+						var pal_entry = new FakePtr<byte>(tga_palette);
+						for (i = (int)(0); (i) < (tga_palette_len); ++i)
 						{
-							var pal_entry = pal_entry2;
-							for (i = (int)(0); (i) < (tga_palette_len); ++i)
-							{
-								stbi__tga_read_rgb16(pal_entry);
-								pal_entry += tga_comp;
-							}
+							stbi__tga_read_rgb16(pal_entry);
+							pal_entry += tga_comp;
 						}
 					}
 					else if (!stbi__getn(tga_palette, 0, (int)(tga_palette_len * tga_comp)))
@@ -157,7 +150,7 @@ namespace StbImageLib.Decoding
 						}
 						else if ((tga_rgb16) != 0)
 						{
-							stbi__tga_read_rgb16(raw_data);
+							stbi__tga_read_rgb16(new FakePtr<byte>(raw_data));
 						}
 						else
 						{
@@ -194,16 +187,13 @@ namespace StbImageLib.Decoding
 
 			if (((tga_comp) >= (3)) && (tga_rgb16 == 0))
 			{
-				fixed (byte* tga_pixel2 = tga_data)
+				var tga_pixel = new FakePtr<byte>(tga_data);
+				for (i = (int)(0); (i) < (tga_width * tga_height); ++i)
 				{
-					var tga_pixel = tga_pixel2;
-					for (i = (int)(0); (i) < (tga_width * tga_height); ++i)
-					{
-						byte temp = (byte)(tga_pixel[0]);
-						tga_pixel[0] = (byte)(tga_pixel[2]);
-						tga_pixel[2] = (byte)(temp);
-						tga_pixel += tga_comp;
-					}
+					byte temp = (byte)(tga_pixel[0]);
+					tga_pixel[0] = (byte)(tga_pixel[2]);
+					tga_pixel[2] = (byte)(temp);
+					tga_pixel += tga_comp;
 				}
 			}
 
@@ -326,17 +316,18 @@ namespace StbImageLib.Decoding
 
 				tga_bits_per_pixel = (int)(stream.stbi__get8());
 				stream.stbi__get8();
+				int is_rgb16;
 				if (tga_colormap_bpp != 0)
 				{
 					if ((tga_bits_per_pixel != 8) && (tga_bits_per_pixel != 16))
 					{
 						return null;
 					}
-					tga_comp = (int)(stbi__tga_get_comp((int)(tga_colormap_bpp), (int)(0), (null)));
+					tga_comp = (int)(stbi__tga_get_comp((int)(tga_colormap_bpp), (int)(0), out is_rgb16));
 				}
 				else
 				{
-					tga_comp = (int)(stbi__tga_get_comp((int)(tga_bits_per_pixel), (((tga_image_type) == (3))) || (((tga_image_type) == (11))) ? 1 : 0, (null)));
+					tga_comp = (int)(stbi__tga_get_comp((int)(tga_bits_per_pixel), (((tga_image_type) == (3))) || (((tga_image_type) == (11))) ? 1 : 0, out is_rgb16));
 				}
 
 				if (tga_comp == 0)

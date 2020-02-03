@@ -8,7 +8,7 @@ namespace StbImageLib
 #else
 	internal
 #endif
-	unsafe class ImageResult
+	class ImageResult
 	{
 		public int Width { get; set; }
 		public int Height { get; set; }

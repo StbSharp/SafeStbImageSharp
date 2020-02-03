@@ -155,7 +155,7 @@ namespace StbImageLib.Decoding
 				code <<= 1;
 			}
 			h.maxcode[j] = (uint)(0xffffffff);
-			CRuntime.SetArray(h.fast, (byte)255);
+			h.fast.Set((byte)255);
 			for (i = (int)(0); (i) < (k); ++i)
 			{
 				int s = (int)(h.size[i]);
@@ -269,7 +269,7 @@ namespace StbImageLib.Decoding
 			if ((code_bits) < (n))
 				stbi__grow_buffer_unsafe();
 			sgn = (int)((int)code_buffer >> 31);
-			k = (uint)(CRuntime._lrotl(code_buffer, (int)(n)));
+			k = (uint)(MathExtensions._lrotl(code_buffer, (int)(n)));
 			code_buffer = (uint)(k & ~stbi__bmask[n]);
 			k &= (uint)(stbi__bmask[n]);
 			code_bits -= (int)(n);
@@ -281,7 +281,7 @@ namespace StbImageLib.Decoding
 			uint k = 0;
 			if ((code_bits) < (n))
 				stbi__grow_buffer_unsafe();
-			k = (uint)(CRuntime._lrotl(code_buffer, (int)(n)));
+			k = (uint)(MathExtensions._lrotl(code_buffer, (int)(n)));
 			code_buffer = (uint)(k & ~stbi__bmask[n]);
 			k &= (uint)(stbi__bmask[n]);
 			code_bits -= (int)(n);
@@ -1187,8 +1187,6 @@ namespace StbImageLib.Decoding
 			}
 			if (scan != STBI__SCAN_load)
 				return (int)(1);
-			if (Memory.stbi__mad3sizes_valid((int)(img_x), (int)(img_y), (int)(img_n), (int)(0)) == 0)
-				stbi__err("too large");
 			for (i = (int)(0); (i) < (img_n); ++i)
 			{
 				if ((img_comp[i].h) > (h_max))

@@ -3,7 +3,7 @@ using System;
 
 namespace StbImageLib.Decoding
 {
-	public unsafe class ZLib
+	public class ZLib
 	{
 		private class stbi__zhuffman
 		{
@@ -21,23 +21,24 @@ namespace StbImageLib.Decoding
 		private static readonly int[] stbi__zdist_extra = { 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13 };
 		private static readonly byte[] stbi__zdefault_length = { 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8 };
 		private static readonly byte[] stbi__zdefault_distance = { 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5 };
+		private static readonly byte[] length_dezigzag = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
 
-		private byte* zbuffer;
-		private byte* zbuffer_end;
+		private FakePtr<byte> zbuffer;
+		private FakePtr<byte> zbuffer_end;
 		private int num_bits;
 		private uint code_buffer;
-		private sbyte* zout;
-		private sbyte* zout_start;
-		private sbyte* zout_end;
+		private FakePtr<byte> zout;
+		private byte[] zout_start;
+		private FakePtr<byte> zout_end;
 		private int z_expandable;
 		private stbi__zhuffman z_length = new stbi__zhuffman();
 		private stbi__zhuffman z_distance = new stbi__zhuffman();
 
 		private byte stbi__zget8()
 		{
-			if (zbuffer >= zbuffer_end)
+			if (zbuffer.Offset >= zbuffer_end.Offset)
 				return 0;
-			return *zbuffer++;
+			return zbuffer.GetAndIncrease();
 		}
 
 		private void stbi__fill_bits()
@@ -66,7 +67,7 @@ namespace StbImageLib.Decoding
 			int b = 0;
 			int s = 0;
 			int k = 0;
-			k = (int)(Memory.stbi__bit_reverse((int)(code_buffer), (int)(16)));
+			k = (int)(MathExtensions.stbi__bit_reverse((int)(code_buffer), (int)(16)));
 			for (s = (int)(9 + 1); ; ++s)
 			{
 				if ((k) < (z.maxcode[s]))
@@ -98,31 +99,30 @@ namespace StbImageLib.Decoding
 			return (int)(stbi__zhuffman_decode_slowpath(z));
 		}
 
-		private int stbi__zexpand(sbyte* zout, int n)
+		private int stbi__zexpand(FakePtr<byte> zout, int n)
 		{
-			sbyte* q;
 			int cur = 0;
 			int limit = 0;
 			int old_limit = 0;
 			this.zout = zout;
 			if (z_expandable == 0)
 				Decoder.stbi__err("output buffer limit");
-			cur = ((int)(this.zout - this.zout_start));
-			limit = (int)(old_limit = ((int)(this.zout_end - this.zout_start)));
+			cur = ((int)(this.zout.Offset));
+			limit = (int)(old_limit = ((int)(this.zout_end.Offset)));
 			while ((cur + n) > (limit))
 			{
 				limit *= (int)(2);
 			}
-			q = (sbyte*)(CRuntime.realloc(this.zout_start, (ulong)(limit)));
-			this.zout_start = q;
-			this.zout = q + cur;
-			this.zout_end = q + limit;
+
+			Array.Resize(ref zout_start, limit);
+			this.zout = new FakePtr<byte>(zout_start, cur);
+			this.zout_end = new FakePtr<byte>(zout_start, limit);
 			return (int)(1);
 		}
 
 		private int stbi__parse_huffman_block()
 		{
-			sbyte* zout = this.zout;
+			FakePtr<byte> zout = this.zout;
 			for (; ; )
 			{
 				int z = (int)(stbi__zhuffman_decode(z_length));
@@ -130,17 +130,16 @@ namespace StbImageLib.Decoding
 				{
 					if ((z) < (0))
 						Decoder.stbi__err("bad huffman code");
-					if ((zout) >= (this.zout_end))
+					if ((zout.Offset) >= (this.zout_end.Offset))
 					{
 						if (stbi__zexpand(zout, (int)(1)) == 0)
 							return (int)(0);
 						zout = this.zout;
 					}
-					*zout++ = ((sbyte)(z));
+					zout.SetAndIncrease((byte)z);
 				}
 				else
 				{
-					byte* p;
 					int len = 0;
 					int dist = 0;
 					if ((z) == (256))
@@ -158,22 +157,22 @@ namespace StbImageLib.Decoding
 					dist = (int)(stbi__zdist_base[z]);
 					if ((stbi__zdist_extra[z]) != 0)
 						dist += (int)(stbi__zreceive((int)(stbi__zdist_extra[z])));
-					if ((zout - this.zout_start) < (dist))
+					if ((zout.Offset) < (dist))
 						Decoder.stbi__err("bad dist");
-					if ((zout + len) > (this.zout_end))
+					if ((zout.Offset + len) > (this.zout_end.Offset))
 					{
 						if (stbi__zexpand(zout, (int)(len)) == 0)
 							return (int)(0);
 						zout = this.zout;
 					}
-					p = (byte*)(zout - dist);
+					FakePtr<byte> p = new FakePtr<byte>(zout, -dist);
 					if ((dist) == (1))
 					{
-						byte v = (byte)(*p);
+						byte v = p.Value;
 						if ((len) != 0)
 						{
 							do
-								*zout++ = (sbyte)(v);
+								zout.SetAndIncrease(v);
 							while ((--len) != 0);
 						}
 					}
@@ -182,7 +181,7 @@ namespace StbImageLib.Decoding
 						if ((len) != 0)
 						{
 							do
-								*zout++ = (sbyte)(*p++);
+								zout.SetAndIncrease(p.GetAndIncrease());
 							while ((--len) != 0);
 						}
 					}
@@ -190,15 +189,15 @@ namespace StbImageLib.Decoding
 			}
 		}
 
-		private static int stbi__zbuild_huffman(stbi__zhuffman z, byte* sizelist, int num)
+		private static int stbi__zbuild_huffman(stbi__zhuffman z, FakePtr<byte> sizelist, int num)
 		{
 			int i = 0;
 			int k = (int)(0);
 			int code = 0;
-			int* next_code = stackalloc int[16];
-			int* sizes = stackalloc int[17];
-			CRuntime.memset(sizes, (int)(0), (ulong)(sizeof(int)));
-			Array.Clear(z.fast, 0, z.fast.Length);
+			int[] next_code = new int[16];
+			int[] sizes = new int[17];
+			sizes.Clear();
+			z.fast.Clear();
 			for (i = (int)(0); (i) < (num); ++i)
 			{
 				++sizes[sizelist[i]];
@@ -235,7 +234,7 @@ namespace StbImageLib.Decoding
 					z.value[c] = ((ushort)(i));
 					if (s <= 9)
 					{
-						int j = (int)(Memory.stbi__bit_reverse((int)(next_code[s]), (int)(s)));
+						int j = (int)(MathExtensions.stbi__bit_reverse((int)(next_code[s]), (int)(s)));
 						while ((j) < (1 << 9))
 						{
 							z.fast[j] = (ushort)(fastv);
@@ -250,43 +249,22 @@ namespace StbImageLib.Decoding
 
 		private int stbi__compute_huffman_codes()
 		{
-			byte* length_dezigzag = stackalloc byte[19];
-			length_dezigzag[0] = (byte)(16);
-			length_dezigzag[1] = (byte)(17);
-			length_dezigzag[2] = (byte)(18);
-			length_dezigzag[3] = (byte)(0);
-			length_dezigzag[4] = (byte)(8);
-			length_dezigzag[5] = (byte)(7);
-			length_dezigzag[6] = (byte)(9);
-			length_dezigzag[7] = (byte)(6);
-			length_dezigzag[8] = (byte)(10);
-			length_dezigzag[9] = (byte)(5);
-			length_dezigzag[10] = (byte)(11);
-			length_dezigzag[11] = (byte)(4);
-			length_dezigzag[12] = (byte)(12);
-			length_dezigzag[13] = (byte)(3);
-			length_dezigzag[14] = (byte)(13);
-			length_dezigzag[15] = (byte)(2);
-			length_dezigzag[16] = (byte)(14);
-			length_dezigzag[17] = (byte)(1);
-			length_dezigzag[18] = (byte)(15);
-
 			stbi__zhuffman z_codelength = new stbi__zhuffman();
-			byte* lencodes = stackalloc byte[286 + 32 + 137];
-			byte* codelength_sizes = stackalloc byte[19];
+			byte[] lencodes = new byte[286 + 32 + 137];
+			byte[] codelength_sizes = new byte[19];
 			int i = 0;
 			int n = 0;
 			int hlit = (int)(stbi__zreceive((int)(5)) + 257);
 			int hdist = (int)(stbi__zreceive((int)(5)) + 1);
 			int hclen = (int)(stbi__zreceive((int)(4)) + 4);
 			int ntot = (int)(hlit + hdist);
-			CRuntime.memset(((byte*)(codelength_sizes)), (int)(0), (ulong)(19 * sizeof(byte)));
+			codelength_sizes.Clear();
 			for (i = (int)(0); (i) < (hclen); ++i)
 			{
 				int s = (int)(stbi__zreceive((int)(3)));
 				codelength_sizes[length_dezigzag[i]] = ((byte)(s));
 			}
-			if (stbi__zbuild_huffman(z_codelength, codelength_sizes, (int)(19)) == 0)
+			if (stbi__zbuild_huffman(z_codelength, new FakePtr<byte>(codelength_sizes), (int)(19)) == 0)
 				return (int)(0);
 			n = (int)(0);
 			while ((n) < (ntot))
@@ -314,22 +292,22 @@ namespace StbImageLib.Decoding
 					}
 					if ((ntot - n) < (c))
 						Decoder.stbi__err("bad codelengths");
-					CRuntime.memset(lencodes + n, (int)(fill), (ulong)(c));
+					lencodes.Set(n, c, fill);
 					n += (int)(c);
 				}
 			}
 			if (n != ntot)
 				Decoder.stbi__err("bad codelengths");
-			if (stbi__zbuild_huffman(z_length, lencodes, (int)(hlit)) == 0)
+			if (stbi__zbuild_huffman(z_length, new FakePtr<byte>(lencodes), (int)(hlit)) == 0)
 				return (int)(0);
-			if (stbi__zbuild_huffman(z_distance, lencodes + hlit, (int)(hdist)) == 0)
+			if (stbi__zbuild_huffman(z_distance, new FakePtr<byte>(lencodes, hlit), (int)(hdist)) == 0)
 				return (int)(0);
 			return (int)(1);
 		}
 
 		private int stbi__parse_uncompressed_block()
 		{
-			byte* header = stackalloc byte[4];
+			byte[] header = new byte[4];
 			int len = 0;
 			int nlen = 0;
 			int k = 0;
@@ -350,12 +328,15 @@ namespace StbImageLib.Decoding
 			nlen = (int)(header[3] * 256 + header[2]);
 			if (nlen != (len ^ 0xffff))
 				Decoder.stbi__err("zlib corrupt");
-			if ((zbuffer + len) > (zbuffer_end))
+			if ((zbuffer.Offset + len) > (zbuffer_end.Offset))
 				Decoder.stbi__err("read past buffer");
-			if ((zout + len) > (zout_end))
+			if ((zout.Offset + len) > (zout_end.Offset))
 				if (stbi__zexpand(zout, (int)(len)) == 0)
 					return (int)(0);
-			CRuntime.memcpy(zout, zbuffer, (ulong)(len));
+			for(var i = 0; i < len; i++)
+			{
+				zout[i] = (byte)zbuffer[i];
+			}
 			zbuffer += len;
 			zout += len;
 			return (int)(1);
@@ -401,16 +382,11 @@ namespace StbImageLib.Decoding
 				{
 					if ((type) == (1))
 					{
-						fixed (byte* b = stbi__zdefault_length)
-						{
-							if (stbi__zbuild_huffman(z_length, b, (int)(288)) == 0)
-								return (int)(0);
-						}
-						fixed (byte* b = stbi__zdefault_distance)
-						{
-							if (stbi__zbuild_huffman(z_distance, b, (int)(32)) == 0)
-								return (int)(0);
-						}
+
+						if (stbi__zbuild_huffman(z_length, new FakePtr<byte>(stbi__zdefault_length), (int)(288)) == 0)
+							return (int)(0);
+						if (stbi__zbuild_huffman(z_distance, new FakePtr<byte>(stbi__zdefault_distance), (int)(32)) == 0)
+							return (int)(0);
 					}
 					else
 					{
@@ -425,101 +401,30 @@ namespace StbImageLib.Decoding
 			return (int)(1);
 		}
 
-		private int stbi__do_zlib(sbyte* obuf, int olen, int exp, int parse_header)
+		private int stbi__do_zlib(byte[] obuf, int olen, int exp, int parse_header)
 		{
 			zout_start = obuf;
-			zout = obuf;
-			zout_end = obuf + olen;
+			zout = new FakePtr<byte>(obuf);
+			zout_end = new FakePtr<byte>(obuf, olen);
 			z_expandable = (int)(exp);
 			return (int)(stbi__parse_zlib((int)(parse_header)));
 		}
 
-		private static int stbi_zlib_decode_buffer(sbyte* obuffer, int olen, sbyte* ibuffer, int ilen)
+		public static byte[] stbi_zlib_decode_malloc_guesssize_headerflag(byte[] buffer, int len, int initial_size, out int outlen, int parse_header)
 		{
+			outlen = 0;
 			var a = new ZLib();
-			a.zbuffer = (byte*)(ibuffer);
-			a.zbuffer_end = (byte*)(ibuffer) + ilen;
-			if ((a.stbi__do_zlib(obuffer, (int)(olen), (int)(0), (int)(1))) != 0)
-				return (int)(a.zout - a.zout_start);
-			else
-				return (int)(-1);
-		}
-
-		public static sbyte* stbi_zlib_decode_noheader_malloc(sbyte* buffer, int len, int* outlen)
-		{
-			var a = new ZLib();
-			sbyte* p = (sbyte*)(Memory.stbi__malloc((ulong)(16384)));
-			a.zbuffer = (byte*)(buffer);
-			a.zbuffer_end = (byte*)(buffer) + len;
-			if ((a.stbi__do_zlib(p, (int)(16384), (int)(1), (int)(0))) != 0)
-			{
-				if ((outlen) != null)
-					*outlen = ((int)(a.zout - a.zout_start));
-				return a.zout_start;
-			}
-			else
-			{
-				CRuntime.free(a.zout_start);
-				return (null);
-			}
-
-		}
-
-		public static int stbi_zlib_decode_noheader_buffer(sbyte* obuffer, int olen, sbyte* ibuffer, int ilen)
-		{
-			var a = new ZLib();
-			a.zbuffer = (byte*)(ibuffer);
-			a.zbuffer_end = (byte*)(ibuffer) + ilen;
-			if ((a.stbi__do_zlib(obuffer, (int)(olen), (int)(0), (int)(0))) != 0)
-				return (int)(a.zout - a.zout_start);
-			else
-				return (int)(-1);
-		}
-
-		public static sbyte* stbi_zlib_decode_malloc_guesssize(sbyte* buffer, int len, int initial_size, int* outlen)
-		{
-			var a = new ZLib();
-			sbyte* p = (sbyte*)(Memory.stbi__malloc((ulong)(initial_size)));
-			if ((p) == (null))
-				return (null);
-			a.zbuffer = (byte*)(buffer);
-			a.zbuffer_end = (byte*)(buffer) + len;
-			if ((a.stbi__do_zlib(p, (int)(initial_size), (int)(1), (int)(1))) != 0)
-			{
-				if ((outlen) != null)
-					*outlen = ((int)(a.zout - a.zout_start));
-				return a.zout_start;
-			}
-			else
-			{
-				CRuntime.free(a.zout_start);
-				return (null);
-			}
-		}
-
-		public static sbyte* stbi_zlib_decode_malloc(sbyte* buffer, int len, int* outlen)
-		{
-			return stbi_zlib_decode_malloc_guesssize(buffer, (int)(len), (int)(16384), outlen);
-		}
-
-		public static sbyte* stbi_zlib_decode_malloc_guesssize_headerflag(sbyte* buffer, int len, int initial_size, int* outlen, int parse_header)
-		{
-			var a = new ZLib();
-			sbyte* p = (sbyte*)(Memory.stbi__malloc((ulong)(initial_size)));
-			if ((p) == (null))
-				return (null);
-			a.zbuffer = (byte*)(buffer);
-			a.zbuffer_end = (byte*)(buffer) + len;
+			var p = new byte[initial_size];
+			a.zbuffer = new FakePtr<byte>(buffer);
+			a.zbuffer_end = new FakePtr<byte>(buffer, + len);
 			if ((a.stbi__do_zlib(p, (int)(initial_size), (int)(1), (int)(parse_header))) != 0)
 			{
-				if ((outlen) != null)
-					*outlen = ((int)(a.zout - a.zout_start));
+				outlen = ((int)(a.zout.Offset));
 				return a.zout_start;
 			}
 			else
 			{
-				CRuntime.free(a.zout_start);
-				return (null);
+				return null;
 			}
 		}
 	}

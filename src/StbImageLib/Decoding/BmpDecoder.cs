@@ -231,8 +231,6 @@ namespace StbImageLib.Decoding
 				target = (int)requiredComponents.Value;
 			else
 				target = (int)(img_n);
-			if (Memory.stbi__mad3sizes_valid((int)(target), (int)(img_x), (int)(img_y), (int)(0)) == 0)
-				stbi__err("too large");
 			_out_ = new byte[target * img_x * img_y];
 			if ((info.bpp) < (16))
 			{
