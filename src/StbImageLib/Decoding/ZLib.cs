@@ -3,7 +3,7 @@ using System;
 
 namespace StbImageLib.Decoding
 {
-	public class ZLib
+	internal class ZLib
 	{
 		private class stbi__zhuffman
 		{

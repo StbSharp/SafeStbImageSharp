@@ -3,7 +3,12 @@ using System.IO;
 
 namespace StbImageLib.Decoding
 {
-	public class TgaDecoder : Decoder
+#if !STBSHARP_INTERNAL
+	public
+#else
+	internal
+# endif
+	class TgaDecoder : Decoder
 	{
 		private TgaDecoder(Stream stream) : base(stream)
 		{

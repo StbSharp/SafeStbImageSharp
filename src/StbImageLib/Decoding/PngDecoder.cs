@@ -5,7 +5,12 @@ using System.Runtime.InteropServices;
 
 namespace StbImageLib.Decoding
 {
-	public class PngDecoder: Decoder
+#if !STBSHARP_INTERNAL
+	public
+#else
+	internal
+# endif
+	class PngDecoder: Decoder
 	{
 		[StructLayout(LayoutKind.Sequential)]
 		public struct stbi__pngchunk

@@ -5,7 +5,12 @@ using System.Runtime.InteropServices;
 
 namespace StbImageLib.Decoding
 {
-	public class GifDecoder: Decoder
+#if !STBSHARP_INTERNAL
+	public
+#else
+	internal
+# endif
+	class GifDecoder: Decoder
 	{
 		[StructLayout(LayoutKind.Sequential)]
 		private struct stbi__gif_lzw

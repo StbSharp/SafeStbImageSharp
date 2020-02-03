@@ -41,7 +41,12 @@ namespace StbImageLib.Decoding
 		public int ypos;
 	}
 
-	public class JpgDecoder: Decoder
+#if !STBSHARP_INTERNAL
+	public
+#else
+	internal
+# endif
+	class JpgDecoder: Decoder
 	{
 		private class stbi__huffman
 		{
@@ -53,7 +58,7 @@ namespace StbImageLib.Decoding
 			public int[] delta = new int[17];
 		}
 
-		public const int STBI__ZFAST_BITS = 9;
+		private const int STBI__ZFAST_BITS = 9;
 
 		private static readonly uint[] stbi__bmask = { 0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 2047, 4095, 8191, 16383, 32767, 65535 };
 		private static readonly int[] stbi__jbias = { 0, -1, -3, -7, -15, -31, -63, -127, -255, -511, -1023, -2047, -4095, -8191, -16383, -32767 };

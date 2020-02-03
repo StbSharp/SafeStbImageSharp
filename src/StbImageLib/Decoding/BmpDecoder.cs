@@ -5,7 +5,12 @@ using System.Runtime.InteropServices;
 
 namespace StbImageLib.Decoding
 {
-	public class BmpDecoder: Decoder
+#if !STBSHARP_INTERNAL
+	public
+#else
+	internal
+#endif
+	class BmpDecoder: Decoder
 	{
 		[StructLayout(LayoutKind.Sequential)]
 		public struct stbi__bmp_data

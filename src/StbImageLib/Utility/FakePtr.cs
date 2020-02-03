@@ -2,7 +2,7 @@
 
 namespace StbImageLib.Utility
 {
-	public struct FakePtr<T> where T: new()
+	internal struct FakePtr<T> where T: new()
 	{
 		public static FakePtr<T> Null = new FakePtr<T>(null);
 

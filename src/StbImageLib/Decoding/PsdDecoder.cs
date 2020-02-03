@@ -4,7 +4,12 @@ using System.IO;
 
 namespace StbImageLib.Decoding
 {
-	public class PsdDecoder : Decoder
+#if !STBSHARP_INTERNAL
+	public
+#else
+	internal
+# endif
+	class PsdDecoder : Decoder
 	{
 		private PsdDecoder(Stream stream) : base(stream)
 		{
