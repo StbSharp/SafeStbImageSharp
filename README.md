@@ -1,8 +1,9 @@
 # StbImageLib
 [![NuGet](https://img.shields.io/nuget/v/StbImageLib.svg)](https://www.nuget.org/packages/StbImageLib/) [![Build status](https://ci.appveyor.com/api/projects/status/w6os3e5th6p529la?svg=true)](https://ci.appveyor.com/project/RomanShapiro/stbimagelib)
 
-StbImageLib is pure C# safe library that can load images in JPG, PNG, BMP, TGA, PSD and GIF formats.
+StbImageLib is **safe** C# library that can load images in JPG, PNG, BMP, TGA, PSD and GIF formats.
 It is based on stb_image.h 2.22 code.
+
 
 # Usage
 Following code loads image from stream and converts it to 32-bit RGBA:
