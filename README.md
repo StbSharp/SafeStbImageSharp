@@ -1,35 +1,18 @@
 # StbImageLib
-[![NuGet](https://img.shields.io/nuget/v/StbImageLib.svg)](https://www.nuget.org/packages/StbImageLib/) [![Build status](https://ci.appveyor.com/api/projects/status/c9eh0e4c70ki26fy?svg=true)](https://ci.appveyor.com/project/RomanShapiro/StbImageLib)
+[![NuGet](https://img.shields.io/nuget/v/StbImageLib.svg)](https://www.nuget.org/packages/StbImageLib/) [![Build status](https://ci.appveyor.com/api/projects/status/w6os3e5th6p529la?svg=true)](https://ci.appveyor.com/project/RomanShapiro/stbimagelib)
 
-StbImageLib is C# port of the stb_image.h, which in its turn is C library to load images in JPG, PNG, BMP, TGA, PSD and GIF formats.
-
-It is important to note, that this project is **port**(not **wrapper**). Original C code had been ported to C#. Therefore StbImageLib doesnt require any native binaries.
-
-The porting hasn't been done by hand, but using [Sichem](https://github.com/rds1983/Sichem), which is the C to C# code converter utility.
+StbImageLib is pure C# safe library that can load images in JPG, PNG, BMP, TGA, PSD and GIF formats.
+It is based on stb_image.h 2.22 code.
 
 # Usage
-StbImageLib exposes API similar to stb_image.h. However that API is complicated and deals with raw unsafe pointers.
-
-Thus several utility classes had been made to wrap that functionality.
-
-'ImageStreamLoader' class wraps the call to 'stbi_load_from_callbacks' method.
-
-It could be used following way:
+Following code loads image from stream and converts it to 32-bit RGBA:
 ```c#
-ImageStreamLoader loader = new ImageStreamLoader();
-using (Stream stream = File.Open(path, FileMode.Open)) 
-{
-	ImageResult image = loader.Read(stream, ColorComponents.RedGreenBlueAlpha);
-}
+	ImageResult image;
+	using (var stream = File.OpenRead(path))
+	{
+		image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+	}
 ```
-
-Or 'ImageResult.FromMemory' method wraps 'stbi_load_from_memory':
-```c# 
-byte[] buffer = File.ReadAllBytes(path);
-ImageResult image = ImageResult.FromMemory(buffer, ColorComponents.RedGreenBlueAlpha);
-```
-
-Both code samples will try to load an image (JPG/PNG/BMP/TGA/PSD/GIF) located at 'path'. It'll throw Exception on failure.
 
 If you are writing MonoGame application and would like to convert that data to the Texture2D. It could be done following way:
 ```c#
