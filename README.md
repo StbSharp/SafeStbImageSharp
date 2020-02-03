@@ -5,6 +5,7 @@ StbImageLib is **safe** C# library that can load images in JPG, PNG, BMP, TGA, P
 
 It is based on stb_image.h 2.22 code.
 
+It is important to note, that this project is **port**(not **wrapper**). Original C code had been ported to C#. Therefore StbImageLib doesnt require any native binaries.
 
 # Usage
 Following code loads image from stream and converts it to 32-bit RGBA:
