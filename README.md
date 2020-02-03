@@ -1,11 +1,24 @@
 # StbImageLib
-[![NuGet](https://img.shields.io/nuget/v/StbImageLib.svg)](https://www.nuget.org/packages/StbImageLib/) [![Build status](https://ci.appveyor.com/api/projects/status/w6os3e5th6p529la?svg=true)](https://ci.appveyor.com/project/RomanShapiro/stbimagelib)
+[![NuGet](https://img.shields.io/nuget/v/StbImageLib.svg)](https://www.nuget.org/packages/StbImageLib/) [![Build status](https://ci.appveyor.com/api/projects/status/w6os3e5th6p529la?svg=true)](https://ci.appveyor.com/project/RomanShapiro/stbimagelib) [![Chat](https://img.shields.io/discord/628186029488340992.svg)](https://discord.gg/ZeHxhCY)
 
 StbImageLib is **safe** C# library that can load images in JPG, PNG, BMP, TGA, PSD and GIF formats.
 
 It is based on stb_image.h 2.22 code.
 
 It is important to note, that this project is **port**(not **wrapper**). Original C code had been ported to C#. Therefore StbImageLib doesnt require any native binaries.
+
+# Adding Reference
+There are two ways of referencing StbImageLib in the project:
+1. Through nuget: https://www.nuget.org/packages/StbImageLib/
+2. As submodule:
+    
+    a. `git submodule add https://github.com/StbSharp/StbImageLib.git`
+    
+    b. Now there are two options:
+       
+      * Add StbImageLib/src/StbImageLib/StbImageLib.csproj to the solution
+       
+      * Include *.cs from StbImageLib/src/StbImageLib directly in the project. In this case, it might make sense to add STBSHARP_INTERNAL build compilation symbol to the project, so StbImageLib classes would become internal.
 
 # Usage
 Following code loads image from stream and converts it to 32-bit RGBA:
