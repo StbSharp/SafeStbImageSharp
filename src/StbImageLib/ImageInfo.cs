@@ -3,7 +3,12 @@ using System.IO;
 
 namespace StbImageLib
 {
-	public struct ImageInfo
+#if !STBSHARP_INTERNAL
+	public
+#else
+	internal
+#endif
+	struct ImageInfo
 	{
 		public int Width;
 		public int Height;
