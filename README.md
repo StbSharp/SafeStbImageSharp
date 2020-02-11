@@ -1,11 +1,7 @@
 # StbImageLib
 [![NuGet](https://img.shields.io/nuget/v/StbImageLib.svg)](https://www.nuget.org/packages/StbImageLib/) [![Build status](https://ci.appveyor.com/api/projects/status/w6os3e5th6p529la?svg=true)](https://ci.appveyor.com/project/RomanShapiro/stbimagelib) [![Chat](https://img.shields.io/discord/628186029488340992.svg)](https://discord.gg/ZeHxhCY)
 
-StbImageLib is **safe** C# library that can load images in JPG, PNG, BMP, TGA, PSD and GIF formats.
-
-It is based on stb_image.h 2.22 code.
-
-It is important to note, that this project is **port**(not **wrapper**). Original C code had been ported to C#. Therefore StbImageLib doesnt require any native binaries.
+StbImageLib is safe and refactored version of [StbImageSharp](https://github.com/StbSharp/StbImageSharp).
 
 # Adding Reference
 There are two ways of referencing StbImageLib in the project:
