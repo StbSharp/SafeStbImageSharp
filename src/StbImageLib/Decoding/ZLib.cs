@@ -195,11 +195,11 @@ namespace StbImageLib.Decoding
 					if (dist == 1)
 					{
 						var v = p.Value;
-						if (len != 0)
-							do
-							{
-								zout.SetAndIncrease(v);
-							} while (--len != 0);
+						if (len > 0)
+						{
+							zout.memset(v, len);
+							zout += len;
+						}
 					}
 					else
 					{

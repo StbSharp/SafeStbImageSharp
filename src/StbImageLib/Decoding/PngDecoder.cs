@@ -175,7 +175,7 @@ namespace StbImageLib.Decoding
 					switch (filter)
 					{
 						case STBI__F_none:
-							FakePtr<byte>.memcpy(cur, raw, nk);
+							cur.memcpy(raw, nk);
 							break;
 						case STBI__F_sub:
 							for (k = 0; k < nk; ++k) cur[k] = (byte)((raw[k] + cur[k - filter_bytes]) & 255);
@@ -437,7 +437,7 @@ namespace StbImageLib.Decoding
 						{
 							var out_y = j * yspc[p] + yorig[p];
 							var out_x = i * xspc[p] + xorig[p];
-							FakePtr<byte>.memcpy(finalPtr + out_y * img_x * out_bytes + out_x * out_bytes,
+							(finalPtr + out_y * img_x * out_bytes + out_x * out_bytes).memcpy(
 								outPtr + (j * x + i) * out_bytes,
 								out_bytes);
 						}

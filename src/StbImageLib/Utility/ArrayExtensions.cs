@@ -21,5 +21,10 @@ namespace StbImageLib.Utility
 		{
 			array.Set(0, array.Length, value);
 		}
+
+		public static void memcpy<T>(this T[] a, FakePtr<T> b, int count) where T: new()
+		{
+			Array.Copy(b._array, b.Offset, a, 0, count);
+		}
 	}
 }

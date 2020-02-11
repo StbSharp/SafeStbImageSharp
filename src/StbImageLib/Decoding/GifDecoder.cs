@@ -251,18 +251,16 @@ namespace StbImageLib.Decoding
 				{
 					for (pi = 0; pi < pcount; ++pi)
 						if (history[pi] != 0)
-							FakePtr<byte>.memcpy(new FakePtr<byte>(ptr, pi * 4),
-								new FakePtr<byte>(two_back.Value, pi * 4), 4);
+							new FakePtr<byte>(ptr, pi * 4).memcpy(new FakePtr<byte>(two_back.Value, pi * 4), 4);
 				}
 				else if (dispose == 2)
 				{
 					for (pi = 0; pi < pcount; ++pi)
 						if (history[pi] != 0)
-							FakePtr<byte>.memcpy(new FakePtr<byte>(ptr, pi * 4), new FakePtr<byte>(background, pi * 4),
-								4);
+							new FakePtr<byte>(ptr, pi * 4).memcpy(new FakePtr<byte>(background, pi * 4), 4);
 				}
 
-				FakePtr<byte>.memcpy(new FakePtr<byte>(background), ptr, 4 * w * h);
+				new FakePtr<byte>(background).memcpy(ptr, 4 * w * h);
 			}
 
 			Array.Clear(history, 0, w * h);
@@ -329,8 +327,7 @@ namespace StbImageLib.Decoding
 								if (history[pi] == 0)
 								{
 									pal[bgindex * 4 + 3] = 255;
-									FakePtr<byte>.memcpy(new FakePtr<byte>(_out_, pi * 4),
-										new FakePtr<byte>(pal, bgindex), 4);
+									new FakePtr<byte>(_out_, pi * 4).memcpy(new FakePtr<byte>(pal, bgindex), 4);
 								}
 
 						return o;

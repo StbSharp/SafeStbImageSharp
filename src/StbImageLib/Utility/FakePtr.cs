@@ -6,7 +6,7 @@ namespace StbImageLib.Utility
 	{
 		public static FakePtr<T> Null = new FakePtr<T>(null);
 
-		private readonly T[] _array;
+		public readonly T[] _array;
 
 		public int Offset;
 
@@ -161,28 +161,19 @@ namespace StbImageLib.Utility
 			return CreateWithSize(1);
 		}
 
-		public static void memcpy(FakePtr<T> a, FakePtr<T> b, int count)
+		public void memset(T value, int count)
 		{
-			for (long i = 0; i < count; ++i)
-			{
-				a[i] = b[i];
-			}
+			_array.Set(Offset, count, value);
 		}
 
-		public static void memcpy(T[] a, FakePtr<T> b, int count)
+		public void memcpy(FakePtr<T> b, int count)
 		{
-			for (long i = 0; i < count; ++i)
-			{
-				a[i] = b[i];
-			}
+			Array.Copy(b._array, b.Offset, _array, Offset, count);
 		}
 
-		public static void memcpy(FakePtr<T> a, T[] b, int count)
+		public void memcpy(T[] b, int count)
 		{
-			for (long i = 0; i < count; ++i)
-			{
-				a[i] = b[i];
-			}
+			Array.Copy(b, 0, _array, Offset, count);
 		}
 	}
 }

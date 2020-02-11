@@ -274,9 +274,9 @@ namespace StbImageLib
 				while ((bytes_left) != 0)
 				{
 					int bytes_copy = (((bytes_left) < (2048)) ? bytes_left : 2048);
-					FakePtr<byte>.memcpy(temp, row0, bytes_copy);
-					FakePtr<byte>.memcpy(row0, row1, bytes_copy);
-					FakePtr<byte>.memcpy(row1, temp, bytes_copy);
+					temp.memcpy(row0, bytes_copy);
+					row0.memcpy(row1, bytes_copy);
+					row1.memcpy(temp, bytes_copy);
 					row0 += bytes_copy;
 					row1 += bytes_copy;
 					bytes_left -= bytes_copy;

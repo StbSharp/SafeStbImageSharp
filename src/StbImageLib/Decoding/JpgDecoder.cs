@@ -534,13 +534,10 @@ namespace StbImageLib.Decoding
 
 		private static byte stbi__clamp(int x)
 		{
-			if ((uint)x > 255)
-			{
-				if (x < 0)
-					return 0;
-				if (x > 255)
-					return 255;
-			}
+			if (x < 0)
+				return 0;
+			if (x > 255)
+				return 255;
 
 			return (byte)x;
 		}
@@ -1386,33 +1383,10 @@ namespace StbImageLib.Decoding
 				r >>= 20;
 				g >>= 20;
 				b >>= 20;
-				if ((uint)r > 255)
-				{
-					if (r < 0)
-						r = 0;
-					else
-						r = 255;
-				}
 
-				if ((uint)g > 255)
-				{
-					if (g < 0)
-						g = 0;
-					else
-						g = 255;
-				}
-
-				if ((uint)b > 255)
-				{
-					if (b < 0)
-						b = 0;
-					else
-						b = 255;
-				}
-
-				_out_[0] = (byte)r;
-				_out_[1] = (byte)g;
-				_out_[2] = (byte)b;
+				_out_[0] = stbi__clamp(r);
+				_out_[1] = stbi__clamp(g);
+				_out_[2] = stbi__clamp(b);
 				_out_[3] = 255;
 				_out_ += step;
 			}
