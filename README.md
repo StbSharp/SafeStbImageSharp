@@ -60,9 +60,9 @@ bmp.UnlockBits(bmpData);
 ```
 
 # Reliability & Performance
-This repo contains special app that was written to measure reliability & performance of StbImageJava in comparison to the original stb_image.h: https://github.com/StbSharp/StbImageLib/tree/master/tests/StbImageSharp.Testing
+This repo contains special app that was written to measure reliability & performance of StbImageLib in comparison to the original stb_image.h: https://github.com/StbSharp/StbImageLib/tree/master/tests/StbImageSharp.Testing
 
-It goes through every image file in the specified folder and tries to load it 10 times with StbImageJava, then 10 times with C++/CLI wrapper over theoriginal stb_image.h(Stb.Native). Then it compares whether the results are byte-wise similar and also calculates loading times. Also it sums up and reports loading times for each method.
+It goes through every image file in the specified folder and tries to load it 10 times with StbImageLib, then 10 times with C++/CLI wrapper over theoriginal stb_image.h(Stb.Native). Then it compares whether the results are byte-wise similar and also calculates loading times. Also it sums up and reports loading times for each method.
 
 I've used it over following set of images: https://github.com/StbSharp/TestImages
 
