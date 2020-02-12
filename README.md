@@ -70,8 +70,8 @@ The byte-wise comprarison results are similar for both methods(except a few 16-b
 
 And performance comparison results are:
 ```
-9 -- Total StbSharp Loading From memory Time: 59220 ms
-9 -- Total Stb.Native Loading From memory Time: 36497 ms
+8 -- Total StbSharp Loading From memory Time: 57917 ms
+8 -- Total Stb.Native Loading From memory Time: 39427 ms
 ```
 
 # License
