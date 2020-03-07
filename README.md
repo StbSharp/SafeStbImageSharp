@@ -1,20 +1,20 @@
-# StbImageLib
-[![NuGet](https://img.shields.io/nuget/v/StbImageLib.svg)](https://www.nuget.org/packages/StbImageLib/) [![Build status](https://ci.appveyor.com/api/projects/status/w6os3e5th6p529la?svg=true)](https://ci.appveyor.com/project/RomanShapiro/stbimagelib) [![Chat](https://img.shields.io/discord/628186029488340992.svg)](https://discord.gg/ZeHxhCY)
+# SafeStbImageSharp
+[![NuGet](https://img.shields.io/nuget/v/SafeStbImageSharp.svg)](https://www.nuget.org/packages/SafeStbImageSharp/) [![Build status](https://ci.appveyor.com/api/projects/status/w6os3e5th6p529la?svg=true)](https://ci.appveyor.com/project/RomanShapiro/SafeStbImageSharp) [![Chat](https://img.shields.io/discord/628186029488340992.svg)](https://discord.gg/ZeHxhCY)
 
-StbImageLib is safe and refactored version of [StbImageSharp](https://github.com/StbSharp/StbImageSharp).
+SafeStbImageSharp is safe and refactored version of [StbImageSharp](https://github.com/StbSharp/StbImageSharp).
 
 # Adding Reference
-There are two ways of referencing StbImageLib in the project:
-1. Through nuget: https://www.nuget.org/packages/StbImageLib/
+There are two ways of referencing SafeStbImageSharp in the project:
+1. Through nuget: https://www.nuget.org/packages/SafeStbImageSharp/
 2. As submodule:
     
-    a. `git submodule add https://github.com/StbSharp/StbImageLib.git`
+    a. `git submodule add https://github.com/StbSharp/SafeStbImageSharp.git`
     
     b. Now there are two options:
        
-      * Add StbImageLib/src/StbImageLib/StbImageLib.csproj to the solution
+      * Add SafeStbImageSharp/src/SafeStbImageSharp/SafeStbImageSharp.csproj to the solution
        
-      * Include *.cs from StbImageLib/src/StbImageLib directly in the project. In this case, it might make sense to add STBSHARP_INTERNAL build compilation symbol to the project, so StbImageLib classes would become internal.
+      * Include *.cs from SafeStbImageSharp/src/SafeStbImageSharp directly in the project. In this case, it might make sense to add STBSHARP_INTERNAL build compilation symbol to the project, so SafeStbImageSharp classes would become internal.
 
 # Usage
 Following code loads image from stream and converts it to 32-bit RGBA:
@@ -60,18 +60,23 @@ bmp.UnlockBits(bmpData);
 ```
 
 # Reliability & Performance
-This repo contains special app that was written to measure reliability & performance of StbImageLib in comparison to the original stb_image.h: https://github.com/StbSharp/StbImageLib/tree/master/tests/StbImageSharp.Testing
+There is special app to measure reliability & performance of SafeStbImageSharp in comparison to the original stb_image.h: https://github.com/StbSharp/SafeStbImageSharp/tree/master/tests/StbImageSharp.Testing
 
-It goes through every image file in the specified folder and tries to load it 10 times with StbImageLib, then 10 times with C++/CLI wrapper over theoriginal stb_image.h(Stb.Native). Then it compares whether the results are byte-wise similar and also calculates loading times. Also it sums up and reports loading times for each method.
+It goes through every image file in the specified folder and tries to load it 10 times with SafeStbImageSharp, then 10 times with C++/CLI wrapper over the original stb_image.h(Stb.Native). Then it compares whether the results are byte-wise similar and also calculates loading times. Also it sums up and reports loading times for each method.
+
+Moreover SixLabor ImageSharp is included in the testing too.
 
 I've used it over following set of images: https://github.com/StbSharp/TestImages
 
-The byte-wise comprarison results are similar for both methods(except a few 16-bit PNGs and PSDs that arent supported yet by StbImageLib).
+The byte-wise comprarison results are similar for StbImageSharp and Stb.Native.
 
-And performance comparison results are:
+And performance comparison results are(times are total loading times):
 ```
-8 -- Total StbSharp Loading From memory Time: 57917 ms
-8 -- Total Stb.Native Loading From memory Time: 39427 ms
+10 -- SafeStbImageSharp - jpg: 16139 ms, tga: 4075 ms, bmp: 370 ms, psd: 2 ms, png: 73274 ms, Total: 93860 ms
+10 -- Stb.Native - jpg: 6437 ms, tga: 2140 ms, bmp: 132 ms, psd: 0 ms, png: 52758 ms, Total: 61467 ms
+10 -- ImageSharp - jpg: 101309 ms, bmp: 63 ms, png: 44211 ms, Total: 145583 ms
+10 -- Total files processed - jpg: 170, tga: 41, bmp: 7, psd: 1, png: 564, Total: 783
+10 -- StbImageSharp/Stb.Native matches/processed - 783/787
 ```
 
 # License
