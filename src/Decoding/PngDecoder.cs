@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using SafeStbImageSharp.Utility;
+using StbImageSharp.Utility;
 
-namespace SafeStbImageSharp.Decoding
+namespace StbImageSharp.Decoding
 {
 #if !STBSHARP_INTERNAL
 	public

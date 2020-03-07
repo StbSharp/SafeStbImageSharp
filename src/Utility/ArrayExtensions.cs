@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SafeStbImageSharp.Utility
+namespace StbImageSharp.Utility
 {
 	internal static class ArrayExtensions
 	{

@@ -1,8 +1,8 @@
-﻿using SafeStbImageSharp.Decoding;
-using SafeStbImageSharp.Utility;
+﻿using StbImageSharp.Decoding;
+using StbImageSharp.Utility;
 using System;
 
-namespace SafeStbImageSharp
+namespace StbImageSharp
 {
 	internal static class Conversion
 	{
