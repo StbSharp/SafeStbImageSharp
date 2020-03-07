@@ -3,7 +3,7 @@ using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace StbImageLib.Samples.MonoGame
+namespace SafeStbImageSharp.Samples.MonoGame
 {
 	/// <summary>
 	/// This is the main type for your game.

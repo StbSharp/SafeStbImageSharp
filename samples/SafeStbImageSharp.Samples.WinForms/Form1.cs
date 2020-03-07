@@ -1,4 +1,4 @@
-﻿using StbImageLib;
+﻿using SafeStbImageSharp;
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;

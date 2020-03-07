@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace StbImageLib.Samples.MonoGame
+namespace SafeStbImageSharp.Samples.MonoGame
 {
     /// <summary>
     /// The main class.

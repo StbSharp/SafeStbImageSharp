@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace StbImageLib.Utility
+namespace SafeStbImageSharp.Utility
 {
 	internal static class IOUtils
 	{

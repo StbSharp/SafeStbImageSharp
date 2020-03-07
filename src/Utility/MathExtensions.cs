@@ -1,4 +1,4 @@
-﻿namespace StbImageLib.Utility
+﻿namespace SafeStbImageSharp.Utility
 {
 	internal static class MathExtensions
 	{

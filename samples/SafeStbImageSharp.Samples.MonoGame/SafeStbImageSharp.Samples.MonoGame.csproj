@@ -14,7 +14,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\..\src\StbImageLib\StbImageLib.csproj" />
+    <ProjectReference Include="..\..\src\SafeStbImageSharp.csproj" />
   </ItemGroup>
   
   <ItemGroup>

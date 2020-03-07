@@ -1,5 +1,5 @@
-﻿using StbImageLib;
-using StbImageLib.Utility;
+﻿using SafeStbImageSharp;
+using SafeStbImageSharp.Utility;
 using StbNative;
 using System;
 using System.Diagnostics;

@@ -46,9 +46,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\StbImageLib\StbImageLib.csproj">
+    <ProjectReference Include="..\..\src\SafeStbImageSharp.csproj">
       <Project>{750e8dc6-0af8-4772-8931-1623d0ea49cc}</Project>
-      <Name>StbImageLib</Name>
+      <Name>SafeStbImageSharp</Name>
     </ProjectReference>
     <ProjectReference Include="..\Stb.Native\Stb.Native.vcxproj">
       <Project>{ea7b8121-942a-437d-85d5-e4d55b94e88a}</Project>
