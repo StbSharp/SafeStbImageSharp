@@ -1,6 +1,6 @@
 # SafeStbImageSharp
 [![NuGet](https://img.shields.io/nuget/v/SafeStbImageSharp.svg)](https://www.nuget.org/packages/SafeStbImageSharp/)
-[![Build status]![Build & Publish](https://github.com/StbSharp/SafeStbImageSharp/workflows/Build%20&%20Publish/badge.svg)
+![Build & Publish](https://github.com/StbSharp/SafeStbImageSharp/workflows/Build%20&%20Publish/badge.svg)
 [![Chat](https://img.shields.io/discord/628186029488340992.svg)](https://discord.gg/ZeHxhCY)
 
 SafeStbImageSharp is safe and refactored version of [StbImageSharp](https://github.com/StbSharp/StbImageSharp).
