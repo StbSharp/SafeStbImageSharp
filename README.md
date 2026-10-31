@@ -1,3 +1,5 @@
+**Important:** This project is archived. Use [StbImageNext](https://github.com/StbSharp/StbImageNext) instead.
+
 # SafeStbImageSharp
 [![NuGet](https://img.shields.io/nuget/v/SafeStbImageSharp.svg)](https://www.nuget.org/packages/SafeStbImageSharp/)
 ![Build & Publish](https://github.com/StbSharp/SafeStbImageSharp/workflows/Build%20&%20Publish/badge.svg)
